@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'astro/config';
+import { defineConfig, sessionDrivers } from 'astro/config';
 import cloudflare from '@astrojs/cloudflare';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -8,13 +8,10 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   output: 'server',
   session: {
-    driver: 'memory',
+    driver: sessionDrivers.lruCache(),
   },
   adapter: cloudflare({
     imageService: 'passthrough',
-    platformProxy: {
-      enabled: true,
-    },
   }),
   vite: {
     resolve: {

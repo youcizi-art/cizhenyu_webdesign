@@ -90,10 +90,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   headers.set('X-HTML-Cache-Layer', 'ssr');
 
   const out = new Response(buf, { status: response.status, headers });
-  const waitUntil = context.locals?.runtime?.ctx?.waitUntil;
+  const cfCtx = context.locals?.cfContext;
   const putTask = putCachedHtml(url, out.clone()).catch(() => undefined);
-  if (typeof waitUntil === 'function') {
-    waitUntil(putTask);
+  if (cfCtx && typeof cfCtx.waitUntil === 'function') {
+    cfCtx.waitUntil(putTask);
   } else {
     void putTask;
   }

@@ -247,7 +247,7 @@ export function useStudioApi() {
         await loadBootstrap(siteKey);
         setBanner({
           kind: 'success',
-          text: `Cloudflare Pages 部署完成！访问地址：${res.deploy.siteUrl}`,
+          text: `Cloudflare 边缘部署完成！访问地址：${res.deploy.siteUrl}`,
         });
         return res;
       } catch (err) {

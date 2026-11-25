@@ -196,7 +196,7 @@ export function validateCmsContract(siteKey, collections = []) {
 export function generateSiteAgentsMd(brief) {
   return `# ${brief.displayName || brief.siteKey} — 单站 Astro 工程协作规范
 
-本目录是由 **Cizhenyu WebDesign Studio** 创建的独立 Astro 5 前端站点工程（\`{workRoot}/sites/${brief.siteKey}\`）。
+本目录是由 **Cizhenyu WebDesign Studio** 创建的独立 Astro v7 前端站点工程（\`{workRoot}/sites/${brief.siteKey}\`）。
 
 ## 必读上下文文件
 1. **当次任务指令**：\`.webdesign/TASK.md\`（每次由 WebDesign 派单更新，请优先阅读并严格执行！）

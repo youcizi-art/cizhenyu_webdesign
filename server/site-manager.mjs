@@ -91,6 +91,7 @@ export function getSiteDetail(siteKeyRaw, sitesDirOverride = '') {
   });
   const preview = getPreviewStatus(siteKey);
   const hasDist =
+    existsSync(join(siteDir, 'dist', 'server', 'entry.mjs')) ||
     existsSync(join(siteDir, 'dist', '_worker.js')) ||
     existsSync(join(siteDir, 'dist', 'index.html'));
   const stat = statSync(siteDir);
@@ -169,10 +170,17 @@ export function upsertSiteProject(input, sitesDirOverride = '') {
     );
   }
 
-  // 2. 写入平台通用基线配置与 AGENTS.md
+  // 2. 写入平台通用基线配置、AGENTS.md 与 wrangler.jsonc 服务名称
   const platformSpec = buildPlatformBaselineSpec(siteKey.replace(/-/g, '_'));
   writeJsonPretty(join(siteDir, '.webdesign', 'platform-spec.json'), platformSpec);
   writeFileSync(join(siteDir, 'AGENTS.md'), generateSiteAgentsMd(brief), 'utf8');
+
+  const wranglerPath = join(siteDir, 'wrangler.jsonc');
+  const existingWrangler = readJsonSafe(wranglerPath, null);
+  if (existingWrangler) {
+    existingWrangler.name = `site-${siteKey}`;
+    writeJsonPretty(wranglerPath, existingWrangler);
+  }
 
   // 3. 同步更新 src/data/site.config.json 的基础元数据（保留现有 navigation 与 dataSource）
   const siteCfgFile = join(siteDir, 'src', 'data', 'site.config.json');

@@ -53,10 +53,10 @@ export function PublishPagesPanel({
           <div>
             <h2 className="panel-title">
               <Rocket size={18} color="#2563eb" />
-              <span>单站 Astro 构建与 Cloudflare Pages 上线</span>
+              <span>单站 Astro v7 构建与 Cloudflare 边缘上线</span>
             </h2>
             <p className="panel-desc">
-              支持将全静态站或已对接 CMS 的动态站直接打包上传至 Cloudflare Pages，自动写入环境变量、自定义域名及 48h 边缘 HTML 缓存规则。
+              采用 Astro v7 + Cloudflare Workers Static Assets 官方架构，自动上传静态资源与 SSR 服务、配置环境变量、自定义域名及 48h 边缘 HTML 缓存规则。
             </p>
           </div>
           <span className={`badge ${cfReady ? 'badge-green' : 'badge-amber'}`}>
@@ -68,7 +68,7 @@ export function PublishPagesPanel({
         <div className="grid-2">
           <div className="field">
             <label htmlFor="wd-pages-proj">
-              <span>Cloudflare Pages 项目名</span>
+              <span>Cloudflare 边缘服务名</span>
               <span className="field-optional">不存在时自动创建</span>
             </label>
             <input
@@ -82,7 +82,7 @@ export function PublishPagesPanel({
           <div className="field">
             <label htmlFor="wd-custom-domain">
               <span>自定义生产域名</span>
-              <span className="field-optional">留空则仅发布至 *.pages.dev</span>
+              <span className="field-optional">留空则分配默认 *.workers.dev 预览域</span>
             </label>
             <input
               id="wd-custom-domain"
@@ -120,8 +120,8 @@ export function PublishPagesPanel({
             <Rocket size={15} />
             <span>
               {busyAction === 'publish'
-                ? '正在构建并上传至 Cloudflare Pages…'
-                : '构建并一键发布到 Cloudflare Pages'}
+                ? '正在构建并上传至 Cloudflare 边缘网络…'
+                : '构建并一键发布到 Cloudflare'}
             </span>
           </button>
 

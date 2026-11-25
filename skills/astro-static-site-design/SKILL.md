@@ -5,7 +5,7 @@ description: 阶段一全静态 Astro 站点设计与实现规范。当构建或
 
 # 阶段一：单站 Astro 全静态设计与构建规范
 
-你正在为用户构建或迭代一个独立的 Astro 5 前端站点。请严格按以下顺序工作：
+你正在为用户构建或迭代一个独立的 Astro v7 前端站点（搭配 `@astrojs/cloudflare` v14 与 `wrangler.jsonc`）。请严格按以下顺序工作：
 
 ## 1. 先读工作区内的双层配置文件
 1. 阅读根目录 `AGENTS.md` 与 `.webdesign/TASK.md`（本次具体任务目标）。
