@@ -14,9 +14,11 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { createConnection } from 'node:net';
+import { request as httpRequest } from 'node:http';
 import { join } from 'node:path';
 import {
   ROOT,
+  codeStamp,
   defaultPort,
   ensureHome,
   logPath,
@@ -53,29 +55,46 @@ function alive(pid) {
 }
 
 function portOpen(port) {
+  // 等 socket 完全 close 后再返回，避免 process.exit 时遗留关闭中的句柄触发 libuv 断言
   return new Promise((resolvePort) => {
-    const s = createConnection({ host: '127.0.0.1', port }, () => {
-      s.end();
-      resolvePort(true);
-    });
-    s.on('error', () => resolvePort(false));
-    s.setTimeout(400, () => {
+    let open = false;
+    const s = createConnection({ host: '127.0.0.1', port });
+    s.setTimeout(400);
+    s.on('connect', () => {
+      open = true;
       s.destroy();
-      resolvePort(false);
     });
+    s.on('timeout', () => s.destroy());
+    s.on('error', () => {});
+    s.on('close', () => resolvePort(open));
   });
 }
 
-async function health(port) {
-  try {
-    const res = await fetch(`http://127.0.0.1:${port}/health`, {
-      signal: AbortSignal.timeout(2000),
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+function health(port) {
+  // 用 node:http 短连接探测（不走 undici 连接池），避免重启场景下遗留半关闭连接使退出阶段触发 libuv 断言
+  return new Promise((resolveHealth) => {
+    const req = httpRequest(
+      { host: '127.0.0.1', port, path: '/health', agent: false, headers: { Connection: 'close' } },
+      (res) => {
+        let raw = '';
+        res.setEncoding('utf8');
+        res.on('data', (c) => {
+          raw += c;
+        });
+        res.on('end', () => {
+          if (res.statusCode !== 200) return resolveHealth(null);
+          try {
+            resolveHealth(JSON.parse(raw));
+          } catch {
+            resolveHealth(null);
+          }
+        });
+      }
+    );
+    req.setTimeout(2000, () => req.destroy());
+    req.on('error', () => resolveHealth(null));
+    req.end();
+  });
 }
 
 async function cmdStatus() {
@@ -107,8 +126,12 @@ async function cmdStart() {
   const port = readPort();
   const existing = await health(port);
   if (existing?.ok) {
-    console.log(JSON.stringify({ ok: true, running: true, port }));
-    return 0;
+    // 工具更新后常驻进程仍是旧代码：指纹不一致（或旧版无指纹）时先停掉再拉起新版
+    if (existing.codeStamp === codeStamp()) {
+      console.log(JSON.stringify({ ok: true, running: true, port }));
+      return 0;
+    }
+    await cmdStop();
   }
 
   mkdirSync(join(ROOT, 'home'), { recursive: true });
@@ -203,4 +226,5 @@ else if (cmd === 'serve') code = cmdServe();
 else if (cmd === 'open') code = await cmdOpen();
 else console.error('usage: node manage.mjs <start|stop|status|serve|open>');
 
-process.exit(code);
+// 不强制 process.exit：让事件循环自然排空所有句柄后以 exitCode 退出
+process.exitCode = code;

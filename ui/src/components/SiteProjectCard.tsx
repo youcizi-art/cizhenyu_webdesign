@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import {
+  AlertCircle,
   Bot,
   CheckCircle2,
+  ExternalLink,
   FolderOpen,
   Loader2,
+  Play,
   RefreshCw,
+  Square,
   Trash2,
-  AlertCircle,
 } from 'lucide-react';
 import type { SiteSummary } from '../types/studio';
 
@@ -16,12 +19,14 @@ interface SiteProjectCardProps {
   busyKey: string;
   onOpenAgent: (siteKey: string, agentId: string) => Promise<void>;
   onRetryInstall: (siteKey: string) => Promise<void>;
+  onStartPreview: (siteKey: string) => Promise<void>;
+  onStopPreview: (siteKey: string) => Promise<void>;
   onOpenFolder: (siteKey: string) => Promise<void>;
   onDeleteSite: (siteKey: string) => Promise<void>;
 }
 
 /**
- * 单个 Astro v7 站点卡片：展示依赖就绪状态、数据源模式与「用 Agent 打开」核心入口
+ * 单个 Astro v7 站点卡片：展示依赖就绪状态、一键预览/关闭与「用 Agent 打开」核心入口
  */
 export function SiteProjectCard({
   site,
@@ -29,6 +34,8 @@ export function SiteProjectCard({
   busyKey,
   onOpenAgent,
   onRetryInstall,
+  onStartPreview,
+  onStopPreview,
   onOpenFolder,
   onDeleteSite,
 }: SiteProjectCardProps) {
@@ -36,6 +43,9 @@ export function SiteProjectCard({
 
   const isOpening = busyKey === `open:${site.siteKey}`;
   const isInstalling = site.installStatus === 'installing' || busyKey === `install:${site.siteKey}`;
+  const isStartingPreview = busyKey === `preview-start:${site.siteKey}`;
+  const isStoppingPreview = busyKey === `preview-stop:${site.siteKey}`;
+  const previewRunning = Boolean(site.preview?.running);
 
   return (
     <div className="site-card">
@@ -64,6 +74,12 @@ export function SiteProjectCard({
           <span className="status-pill status-neutral">
             {site.dataSource === 'cms' ? 'CMS 动态数据' : '本地 Seed 静态模式'}
           </span>
+
+          {previewRunning && site.preview?.port ? (
+            <span className="status-pill status-blue">
+              <span>预览运行中 :{site.preview.port}</span>
+            </span>
+          ) : null}
         </div>
 
         <div className="site-meta-path">{site.path}</div>
@@ -84,6 +100,45 @@ export function SiteProjectCard({
             <RefreshCw size={14} />
             <span>安装依赖</span>
           </button>
+        ) : null}
+
+        {site.installStatus === 'ready' ? (
+          previewRunning ? (
+            <>
+              <button
+                type="button"
+                className="btn"
+                disabled={Boolean(busyKey)}
+                onClick={() => void onStartPreview(site.siteKey)}
+              >
+                <ExternalLink size={14} />
+                <span>打开预览</span>
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={Boolean(busyKey)}
+                onClick={() => void onStopPreview(site.siteKey)}
+              >
+                <Square size={13} />
+                <span>{isStoppingPreview ? '正在关闭…' : '关闭预览'}</span>
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn"
+              disabled={Boolean(busyKey)}
+              onClick={() => void onStartPreview(site.siteKey)}
+            >
+              {isStartingPreview ? (
+                <Loader2 size={14} className="spin-icon" />
+              ) : (
+                <Play size={14} />
+              )}
+              <span>{isStartingPreview ? '启动预览中…' : '预览'}</span>
+            </button>
+          )
         ) : null}
 
         <button

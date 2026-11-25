@@ -1,7 +1,7 @@
 /**
  * 路径与运行环境解析：严格区分工具安装目录与用户工作根 `{workRoot}/sites`。
  */
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,6 +10,25 @@ export const ROOT = resolve(__dirname, '..');
 
 export function defaultPort() {
   return 20190;
+}
+
+/**
+ * 当前磁盘上服务代码与 UI 产物的指纹（取 server.mjs / server/*.mjs / public/index.html 的最大修改时间）。
+ * 用于识别「工具已更新但常驻进程仍是旧代码」，由 manage.mjs start 触发自动重启。
+ */
+export function codeStamp() {
+  const files = [join(ROOT, 'server.mjs'), join(ROOT, 'public', 'index.html')];
+  const serverDir = join(ROOT, 'server');
+  if (existsSync(serverDir)) {
+    for (const name of readdirSync(serverDir)) {
+      if (name.endsWith('.mjs')) files.push(join(serverDir, name));
+    }
+  }
+  let latest = 0;
+  for (const f of files) {
+    if (existsSync(f)) latest = Math.max(latest, statSync(f).mtimeMs);
+  }
+  return String(Math.floor(latest));
 }
 
 export function homeDir() {

@@ -29,6 +29,12 @@ export interface DetectedAgentItem {
 
 export type InstallStatus = 'installing' | 'ready' | 'error' | 'pending';
 
+export interface SitePreviewState {
+  running: boolean;
+  port: number | null;
+  url: string | null;
+}
+
 export interface SiteSummary {
   siteKey: string;
   namespace: string;
@@ -39,6 +45,7 @@ export interface SiteSummary {
   defaultLocale: string;
   installStatus: InstallStatus;
   installError: string | null;
+  preview: SitePreviewState;
   hasDist: boolean;
   updatedAt: string;
 }

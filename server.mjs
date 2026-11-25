@@ -13,6 +13,7 @@ import {
   listDeployTools,
 } from './server/bridge-client.mjs';
 import {
+  codeStamp,
   defaultPort,
   ensureHome,
   pidPath,
@@ -25,11 +26,16 @@ import {
   getSiteDetail,
   listSites,
   refreshSiteInjectedAssets,
+  startSitePreview,
+  stopAllPreviews,
+  stopSitePreview,
   triggerSiteNpmInstall,
 } from './server/site-manager.mjs';
 
 ensureHome();
 writeFileSync(pidPath(), String(process.pid), 'utf8');
+// 启动时记录代码指纹，供 manage.mjs 判断常驻进程是否已过期
+const STARTED_CODE_STAMP = codeStamp();
 
 function readJsonBody(req) {
   return new Promise((resolveBody, reject) => {
@@ -93,6 +99,22 @@ function serveStaticFile(res, urlPath) {
   res.end(readFileSync(target));
 }
 
+function openExternalUrl(url) {
+  if (!/^https?:\/\//i.test(url)) return;
+  if (process.env.CIZHENYU_NO_BROWSER_OPEN === '1') return;
+  if (process.platform === 'win32') {
+    spawn('cmd', ['/c', 'start', '', url], {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    }).unref();
+  } else if (process.platform === 'darwin') {
+    spawn('open', [url], { detached: true, stdio: 'ignore' }).unref();
+  } else {
+    spawn('xdg-open', [url], { detached: true, stdio: 'ignore' }).unref();
+  }
+}
+
 function openLocalFolder(folderPath) {
   if (process.platform === 'win32') {
     spawn('explorer.exe', [folderPath.replace(/\//g, '\\')], {
@@ -142,7 +164,12 @@ async function handleRequest(req, res) {
   }
 
   if (pathname === '/health' && method === 'GET') {
-    sendJson(res, 200, { ok: true, service: 'cizhenyu-webdesign', pid: process.pid });
+    sendJson(res, 200, {
+      ok: true,
+      service: 'cizhenyu-webdesign',
+      pid: process.pid,
+      codeStamp: STARTED_CODE_STAMP,
+    });
     return;
   }
 
@@ -198,6 +225,21 @@ async function handleRequest(req, res) {
       return;
     }
 
+    if (subAction === 'preview-start' && method === 'POST') {
+      const preview = await startSitePreview(siteKey, sitesDir);
+      if (preview?.url) {
+        openExternalUrl(preview.url);
+      }
+      sendJson(res, 200, { ok: true, preview });
+      return;
+    }
+
+    if (subAction === 'preview-stop' && method === 'POST') {
+      const preview = stopSitePreview(siteKey);
+      sendJson(res, 200, { ok: true, preview });
+      return;
+    }
+
     if (subAction === 'open-agent' && method === 'POST') {
       const body = await readJsonBody(req);
       const detail = refreshSiteInjectedAssets(siteKey, sitesDir);
@@ -236,3 +278,11 @@ const server = createServer((req, res) => {
 server.listen(port, '127.0.0.1', () => {
   console.log(`cizhenyu-webdesign listening on http://127.0.0.1:${port}`);
 });
+
+function shutdown() {
+  stopAllPreviews();
+  process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

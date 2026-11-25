@@ -22,6 +22,8 @@ export function App() {
     createSite,
     openWithAgent,
     retryInstall,
+    startPreview,
+    stopPreview,
     openFolder,
     deleteSite,
   } = useStudioApi();
@@ -176,6 +178,8 @@ export function App() {
                 busyKey={busyKey}
                 onOpenAgent={openWithAgent}
                 onRetryInstall={retryInstall}
+                onStartPreview={startPreview}
+                onStopPreview={stopPreview}
                 onOpenFolder={openFolder}
                 onDeleteSite={deleteSite}
               />

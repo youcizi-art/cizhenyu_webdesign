@@ -139,6 +139,44 @@ export function useStudioApi() {
     }
   }, []);
 
+  const startPreview = useCallback(
+    async (siteKey: string) => {
+      setBusyKey(`preview-start:${siteKey}`);
+      try {
+        const res = await apiFetch<{ ok: boolean; preview: { url: string | null } }>(
+          `/api/sites/${siteKey}/preview-start`,
+          { method: 'POST' }
+        );
+        await loadBootstrap(true);
+        setBanner({
+          kind: 'success',
+          text: `预览服务已启动并在浏览器打开：${res.preview.url || ''}`,
+        });
+      } catch (err) {
+        setBanner({ kind: 'error', text: err instanceof Error ? err.message : String(err) });
+      } finally {
+        setBusyKey('');
+      }
+    },
+    [loadBootstrap]
+  );
+
+  const stopPreview = useCallback(
+    async (siteKey: string) => {
+      setBusyKey(`preview-stop:${siteKey}`);
+      try {
+        await apiFetch(`/api/sites/${siteKey}/preview-stop`, { method: 'POST' });
+        await loadBootstrap(true);
+        setBanner({ kind: 'info', text: `已关闭站点「${siteKey}」的本地预览服务。` });
+      } catch (err) {
+        setBanner({ kind: 'error', text: err instanceof Error ? err.message : String(err) });
+      } finally {
+        setBusyKey('');
+      }
+    },
+    [loadBootstrap]
+  );
+
   const deleteSite = useCallback(
     async (siteKey: string) => {
       setBusyKey(`delete:${siteKey}`);
@@ -167,6 +205,8 @@ export function useStudioApi() {
     createSite,
     openWithAgent,
     retryInstall,
+    startPreview,
+    stopPreview,
     openFolder,
     deleteSite,
   };
