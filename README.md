@@ -1,23 +1,20 @@
 # Cizhenyu WebDesign Studio (`webdesign`)
 
-基于 Astro v7（`^7.4.12`）与 `@astrojs/cloudflare` v14 的单站可视化前端设计器与前后台数据对接工作台（Deploy `config.type = "page"` 协议工具）。
+极简 Astro v7 单站项目初始化与 Agent 建站装配器（Deploy `config.type = "page"` 协议工具）。
 
-## 核心特性
+## 核心职责
 
-1. **三层目录解耦**：工具运行于 `{systemRoot}/scripts/webdesign`，所有生成的独立 Astro v7 站点存放在用户工作目录 `{workRoot}/sites/<siteKey>`。
-2. **渐进式非必填配置**：支持仅凭一句话构想开建，也支持补充品牌色板、参考站点、栏目规划与企业产品素材。
-3. **内置 SEO / GEO 与边缘缓存底座**：出厂自带 `SeoHead`、Schema.org JSON-LD、`hreflang`、`sitemap.xml`、`llms.txt`、`GeoAnswer` 以及 Cloudflare 48h 边缘 HTML 缓存与 `/api/revalidate` 失效接口。
-4. **两阶段 Agent 协同工作流**：
-   - **阶段一（全静态构建）**：调起 DSH / OpenCode 生成全静态 Astro 站点并本地实时预览，打磨至满意。
-   - **阶段二（CMS 字段约束与对接）**：校验 `cizhenyu_payload` 三层字段契约，调起 Agent 通过 `cmsmcp` 自动创建 `{siteKey}_{logical}` 集合、导入初始数据并切换前端数据源，最后一键发布至 Cloudflare Workers Static Assets 边缘网络。
+1. **创建即就绪**：在 `{workRoot}/sites/<siteKey>` 下创建干净的单站 **Astro v7 (`^7.4.12`) + `@astrojs/cloudflare` v14** 工程（预置 SEO/GEO/48h 边缘 HTML 缓存内核与同构 `seed/` 数据目录），并自动执行 `npm install` 安装依赖。
+2. **注入规范与全套 MCP**：自动向站点注入前端设计、SEO/GEO 合规与 CMS/CRM/Deploy 交付三大 Skills，并在点击 **「用 Agent 打开」** 时自动挂载 `cmsmcp`、`crmmcp` 与 `webdesign`（含 Deploy Seed 数据注入与边缘上线能力）。
+3. **全对话闭环**：无需在工具里填复杂表单，直接在 Agent 对话中边聊边改页面、创建 CMS 集合、灌入 `seed/` 多语种数据与媒体、挂载 CRM 或一键部署至 Cloudflare 边缘网络。
 
 ## 常用命令
 
 ```bash
-# 构建管理台前端 UI（开发修改 ui/ 后执行，产物输出至 public/）
+# 重新构建前端界面（修改 ui/ 后执行，输出至 public/）
 npm run ui:build
 
-# 常驻服务管理
+# 本地常驻服务管理
 node manage.mjs start
 node manage.mjs status
 node manage.mjs stop

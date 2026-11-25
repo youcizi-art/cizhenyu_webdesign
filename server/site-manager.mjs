@@ -1,5 +1,5 @@
 /**
- * 站点工程管理：创建/更新 `{workRoot}/sites/{siteKey}`、本地预览进程托管、SEO/GEO 体检、契约提取与构建。
+ * 站点工程管理：创建 `{workRoot}/sites/<siteKey>`、注入 Skills、异步安装依赖、SEO/GEO 体检、集合契约校验与生产构建。
  */
 import { spawn } from 'node:child_process';
 import {
@@ -8,22 +8,26 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { createServer as createNetServer } from 'node:net';
 import { join, resolve } from 'node:path';
-import {
-  buildPlatformBaselineSpec,
-  generateSiteAgentsMd,
-  validateCmsContract,
-} from './platform-spec.mjs';
+import { generateSiteAgentsMd, validateCmsContract } from './platform-spec.mjs';
 import { ROOT, resolveSitesRoot, sanitizeSiteKey } from './paths.mjs';
 
 const STARTER_DIR = join(ROOT, 'templates', 'astro-site-starter');
+const SKILLS_SRC_DIR = join(ROOT, 'skills');
 
-/** @type {Map<string, { pid: number, port: number, child: import('node:child_process').ChildProcess, startedAt: string, logs: string[] }>} */
-const previewProcesses = new Map();
+const AGENT_SKILL_REL_DIRS = [
+  join('.agents', 'skills'),
+  join('.opencode', 'skill'),
+  join('.cursor', 'skills'),
+  join('.claude', 'skills'),
+];
+
+/** @type {Map<string, { state: 'installing' | 'error', startedAt: string, error?: string }>} */
+const installJobs = new Map();
 
 function readJsonSafe(file, fallback = null) {
   if (!existsSync(file)) return fallback;
@@ -39,22 +43,131 @@ function writeJsonPretty(file, value) {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
-function findFreePort(startPort = 4321) {
-  return new Promise((resolvePort, reject) => {
-    const tryNext = (port) => {
-      if (port > startPort + 50) {
-        reject(new Error('无法找到空闲预览端口'));
-        return;
+function syncSkillsIntoSite(siteDir) {
+  if (!existsSync(SKILLS_SRC_DIR)) return;
+  const skillEntries = readdirSync(SKILLS_SRC_DIR, { withFileTypes: true }).filter((e) =>
+    e.isDirectory()
+  );
+  for (const relTarget of AGENT_SKILL_REL_DIRS) {
+    const destBase = join(siteDir, relTarget);
+    mkdirSync(destBase, { recursive: true });
+    for (const sk of skillEntries) {
+      cpSync(join(SKILLS_SRC_DIR, sk.name), join(destBase, sk.name), { recursive: true });
+    }
+  }
+}
+
+function runNpmCommand(cwd, args, timeoutMs = 900000) {
+  return new Promise((resolveCmd, reject) => {
+    const isWin = process.platform === 'win32';
+    const cmd = isWin ? 'cmd.exe' : 'npm';
+    const fullArgs = isWin ? ['/d', '/s', '/c', `npm ${args.join(' ')}`] : args;
+    const child = spawn(cmd, fullArgs, {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    });
+    let out = '';
+    let err = '';
+    const timer = setTimeout(() => {
+      try {
+        child.kill();
+      } catch {
+        // ignore
       }
-      const srv = createNetServer();
-      srv.once('error', () => tryNext(port + 1));
-      srv.once('listening', () => {
-        srv.close(() => resolvePort(port));
-      });
-      srv.listen(port, '127.0.0.1');
-    };
-    tryNext(startPort);
+      reject(new Error(`执行 npm ${args.join(' ')} 超时`));
+    }, timeoutMs);
+
+    child.stdout.on('data', (d) => {
+      out += d.toString();
+    });
+    child.stderr.on('data', (d) => {
+      err += d.toString();
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (code === 0) {
+        resolveCmd({ stdout: out, stderr: err });
+      } else {
+        reject(new Error(`npm ${args.join(' ')} 退出码 ${code}:\n${(err || out).slice(-800)}`));
+      }
+    });
   });
+}
+
+export function triggerSiteNpmInstall(siteKeyRaw, sitesDirOverride = '') {
+  const siteKey = sanitizeSiteKey(siteKeyRaw);
+  const sitesRoot = resolveSitesRoot(sitesDirOverride);
+  const siteDir = join(sitesRoot, siteKey);
+  if (!existsSync(join(siteDir, 'package.json'))) {
+    throw new Error(`站点不存在: ${siteKey}`);
+  }
+  const current = installJobs.get(siteKey);
+  if (current?.state === 'installing') {
+    return;
+  }
+
+  installJobs.set(siteKey, {
+    state: 'installing',
+    startedAt: new Date().toISOString(),
+  });
+
+  runNpmCommand(siteDir, ['install', '--prefer-offline', '--no-audit', '--no-fund'], 900000)
+    .then(() => {
+      installJobs.delete(siteKey);
+    })
+    .catch((err) => {
+      installJobs.set(siteKey, {
+        state: 'error',
+        startedAt: new Date().toISOString(),
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+}
+
+function getInstallStatus(siteKey, siteDir) {
+  const job = installJobs.get(siteKey);
+  if (job?.state === 'installing') {
+    return { status: 'installing', error: null };
+  }
+  if (existsSync(join(siteDir, 'node_modules', 'astro'))) {
+    return { status: 'ready', error: null };
+  }
+  if (job?.state === 'error') {
+    return { status: 'error', error: job.error || '依赖安装失败' };
+  }
+  return { status: 'pending', error: null };
+}
+
+export function getSiteDetail(siteKeyRaw, sitesDirOverride = '') {
+  const siteKey = sanitizeSiteKey(siteKeyRaw);
+  const sitesRoot = resolveSitesRoot(sitesDirOverride);
+  const siteDir = join(sitesRoot, siteKey);
+  if (!existsSync(siteDir)) {
+    throw new Error(`站点不存在: ${siteKey}`);
+  }
+
+  const siteCfg = readJsonSafe(join(siteDir, 'src', 'data', 'site.config.json'), {});
+  const install = getInstallStatus(siteKey, siteDir);
+  const hasDist =
+    existsSync(join(siteDir, 'dist', 'server', 'entry.mjs')) ||
+    existsSync(join(siteDir, 'dist', '_worker.js')) ||
+    existsSync(join(siteDir, 'dist', 'index.html'));
+  const stat = statSync(siteDir);
+
+  return {
+    siteKey,
+    namespace: siteKey.replace(/-/g, '_'),
+    path: siteDir.replace(/\\/g, '/'),
+    displayName: siteCfg.displayName || siteKey,
+    dataSource: siteCfg.dataSource || 'mock',
+    locales: siteCfg.locales || ['en-US', 'zh-CN'],
+    defaultLocale: siteCfg.defaultLocale || 'en-US',
+    installStatus: install.status,
+    installError: install.error,
+    hasDist,
+    updatedAt: stat.mtime.toISOString(),
+  };
 }
 
 export function listSites(sitesDirOverride = '') {
@@ -73,107 +186,35 @@ export function listSites(sitesDirOverride = '') {
   return { sitesRoot, sites: list };
 }
 
-export function getSiteDetail(siteKeyRaw, sitesDirOverride = '') {
-  const siteKey = sanitizeSiteKey(siteKeyRaw);
-  const sitesRoot = resolveSitesRoot(sitesDirOverride);
-  const siteDir = join(sitesRoot, siteKey);
-  if (!existsSync(siteDir)) {
-    throw new Error(`站点不存在: ${siteKey}`);
-  }
-
-  const siteCfg = readJsonSafe(join(siteDir, 'src', 'data', 'site.config.json'), {});
-  const brief = readJsonSafe(join(siteDir, '.webdesign', 'site-brief.json'), {
-    siteKey,
-    displayName: siteCfg.displayName || siteKey,
-    oneLiner: '',
-    locales: siteCfg.locales || ['en-US'],
-    defaultLocale: siteCfg.defaultLocale || 'en-US',
-  });
-  const preview = getPreviewStatus(siteKey);
-  const hasDist =
-    existsSync(join(siteDir, 'dist', 'server', 'entry.mjs')) ||
-    existsSync(join(siteDir, 'dist', '_worker.js')) ||
-    existsSync(join(siteDir, 'dist', 'index.html'));
-  const stat = statSync(siteDir);
-
-  return {
-    siteKey,
-    path: siteDir.replace(/\\/g, '/'),
-    displayName: brief.displayName || siteCfg.displayName || siteKey,
-    dataSource: siteCfg.dataSource || 'mock',
-    locales: siteCfg.locales || brief.locales || ['en-US'],
-    defaultLocale: siteCfg.defaultLocale || brief.defaultLocale || 'en-US',
-    primaryColor: siteCfg.brand?.primaryColor || brief.primaryColor || '#2563eb',
-    brief,
-    hasDist,
-    preview,
-    updatedAt: brief.updatedAt || stat.mtime.toISOString(),
-  };
-}
-
 /**
- * 新建或更新单站 Astro 工程，并同步写入站点特殊配置与平台通用基线配置。
+ * 在 `{workRoot}/sites/<siteKey>` 创建新站点：移入 Astro v7 基础代码、注入 Skills/AGENTS.md，并启动后台依赖安装。
  */
-export function upsertSiteProject(input, sitesDirOverride = '') {
+export function createSiteProject(input, sitesDirOverride = '') {
   const siteKey = sanitizeSiteKey(input.siteKey);
   const sitesRoot = resolveSitesRoot(sitesDirOverride);
   const siteDir = join(sitesRoot, siteKey);
-  const isNew = !existsSync(join(siteDir, 'package.json'));
 
-  if (isNew) {
-    if (!existsSync(STARTER_DIR)) {
-      throw new Error(`缺少脚手架模板目录: ${STARTER_DIR}`);
-    }
-    mkdirSync(siteDir, { recursive: true });
-    cpSync(STARTER_DIR, siteDir, { recursive: true });
+  if (existsSync(join(siteDir, 'package.json'))) {
+    throw new Error(`站点 "${siteKey}" 已存在，请直接点击「用 Agent 打开」`);
+  }
+  if (!existsSync(STARTER_DIR)) {
+    throw new Error(`缺少 Astro 基础工程模板: ${STARTER_DIR}`);
   }
 
-  const prevBrief = readJsonSafe(join(siteDir, '.webdesign', 'site-brief.json'), {});
-  const locales =
-    Array.isArray(input.locales) && input.locales.length > 0
-      ? input.locales.map((x) => String(x).trim()).filter(Boolean)
-      : prevBrief.locales || ['en-US'];
-  const defaultLocale =
-    input.defaultLocale && locales.includes(input.defaultLocale)
-      ? input.defaultLocale
-      : locales[0];
+  mkdirSync(siteDir, { recursive: true });
+  cpSync(STARTER_DIR, siteDir, { recursive: true });
 
-  const brief = {
-    siteKey,
-    displayName: String(input.displayName ?? prevBrief.displayName ?? siteKey).trim() || siteKey,
-    oneLiner: String(input.oneLiner ?? prevBrief.oneLiner ?? '').trim(),
-    primaryColor: String(input.primaryColor ?? prevBrief.primaryColor ?? '#2563eb').trim(),
-    accentColor: String(input.accentColor ?? prevBrief.accentColor ?? '#0ea5e9').trim(),
-    surfaceMode: String(input.surfaceMode ?? prevBrief.surfaceMode ?? 'light').trim(),
-    styleNotes: String(input.styleNotes ?? prevBrief.styleNotes ?? '').trim(),
-    referenceUrls: Array.isArray(input.referenceUrls)
-      ? input.referenceUrls.map((u) => String(u).trim()).filter(Boolean)
-      : prevBrief.referenceUrls || [],
-    desiredPages: Array.isArray(input.desiredPages)
-      ? input.desiredPages.map((p) => String(p).trim()).filter(Boolean)
-      : prevBrief.desiredPages || [],
-    rawMaterials: String(input.rawMaterials ?? prevBrief.rawMaterials ?? '').trim(),
-    customHeadScript: String(input.customHeadScript ?? prevBrief.customHeadScript ?? '').trim(),
-    locales,
-    defaultLocale,
-    updatedAt: new Date().toISOString(),
-  };
+  const displayName = String(input.displayName || '').trim() || siteKey;
+  const ns = siteKey.replace(/-/g, '_');
 
-  // 1. 写入站点特殊配置 + 原始资料文本（若有）
-  writeJsonPretty(join(siteDir, '.webdesign', 'site-brief.json'), brief);
-  if (brief.rawMaterials) {
-    mkdirSync(join(siteDir, '.webdesign', 'materials'), { recursive: true });
-    writeFileSync(
-      join(siteDir, '.webdesign', 'materials', 'user-materials.md'),
-      `${brief.rawMaterials}\n`,
-      'utf8'
-    );
-  }
-
-  // 2. 写入平台通用基线配置、AGENTS.md 与 wrangler.jsonc 服务名称
-  const platformSpec = buildPlatformBaselineSpec(siteKey.replace(/-/g, '_'));
-  writeJsonPretty(join(siteDir, '.webdesign', 'platform-spec.json'), platformSpec);
-  writeFileSync(join(siteDir, 'AGENTS.md'), generateSiteAgentsMd(brief), 'utf8');
+  const siteCfgFile = join(siteDir, 'src', 'data', 'site.config.json');
+  const existingCfg = readJsonSafe(siteCfgFile, {});
+  writeJsonPretty(siteCfgFile, {
+    ...existingCfg,
+    siteKey: ns,
+    displayName,
+    dataSource: 'mock',
+  });
 
   const wranglerPath = join(siteDir, 'wrangler.jsonc');
   const existingWrangler = readJsonSafe(wranglerPath, null);
@@ -182,49 +223,42 @@ export function upsertSiteProject(input, sitesDirOverride = '') {
     writeJsonPretty(wranglerPath, existingWrangler);
   }
 
-  // 3. 同步更新 src/data/site.config.json 的基础元数据（保留现有 navigation 与 dataSource）
-  const siteCfgFile = join(siteDir, 'src', 'data', 'site.config.json');
-  const existingCfg = readJsonSafe(siteCfgFile, {});
-  const nextCfg = {
-    ...existingCfg,
-    siteKey: siteKey.replace(/-/g, '_'),
-    displayName: brief.displayName,
-    dataSource: input.dataSource || existingCfg.dataSource || 'mock',
-    defaultLocale,
-    locales,
-    brand: {
-      ...(existingCfg.brand || {}),
-      primaryColor: brief.primaryColor || '#2563eb',
-      accentColor: brief.accentColor || '#0ea5e9',
-      surfaceMode: brief.surfaceMode || 'light',
-      tagline: brief.oneLiner || existingCfg.brand?.tagline || brief.displayName,
-    },
-    customHeadScript: brief.customHeadScript,
-  };
-  writeJsonPretty(siteCfgFile, nextCfg);
+  writeFileSync(join(siteDir, 'AGENTS.md'), generateSiteAgentsMd(siteKey, displayName), 'utf8');
+  syncSkillsIntoSite(siteDir);
+  triggerSiteNpmInstall(siteKey, sitesRoot);
 
-  // 首次初始化时同步产出默认 cms-contract.json
-  const contractJsonPath = join(siteDir, '.webdesign', 'cms-contract.json');
-  if (!existsSync(contractJsonPath)) {
-    const extracted = extractCollectionsFromContractTs(siteDir);
-    if (extracted.length > 0) {
-      writeJsonPretty(contractJsonPath, { collections: extracted });
-    }
-  }
-
-  return { isNew, site: getSiteDetail(siteKey, sitesRoot) };
+  return getSiteDetail(siteKey, sitesRoot);
 }
 
 /**
- * 从站点 `.webdesign/cms-contract.json` 或 `src/data/contracts/collections.contract.ts` 解析集合定义并执行强校验。
+ * 刷新已有站点的 Skills 与 AGENTS.md（打开 Agent 前调用，确保老站点也能获得最新规范）。
  */
-export function extractCollectionsFromContractTs(siteDir) {
-  const jsonPath = join(siteDir, '.webdesign', 'cms-contract.json');
-  const saved = readJsonSafe(jsonPath, null);
-  if (saved && Array.isArray(saved.collections) && saved.collections.length > 0) {
-    return saved.collections;
+export function refreshSiteInjectedAssets(siteKeyRaw, sitesDirOverride = '') {
+  const detail = getSiteDetail(siteKeyRaw, sitesDirOverride);
+  syncSkillsIntoSite(detail.path);
+  const agentsMdPath = join(detail.path, 'AGENTS.md');
+  if (!existsSync(agentsMdPath)) {
+    writeFileSync(agentsMdPath, generateSiteAgentsMd(detail.siteKey, detail.displayName), 'utf8');
   }
+  return detail;
+}
 
+export function deleteSiteProject(siteKeyRaw, sitesDirOverride = '') {
+  const siteKey = sanitizeSiteKey(siteKeyRaw);
+  const sitesRoot = resolve(resolveSitesRoot(sitesDirOverride));
+  const siteDir = resolve(join(sitesRoot, siteKey));
+  if (!siteDir.startsWith(sitesRoot) || siteDir === sitesRoot) {
+    throw new Error('非法的站点目录路径');
+  }
+  if (!existsSync(siteDir)) {
+    throw new Error(`站点不存在: ${siteKey}`);
+  }
+  installJobs.delete(siteKey);
+  rmSync(siteDir, { recursive: true, force: true });
+  return { deleted: siteKey };
+}
+
+export function extractCollectionsFromContractTs(siteDir) {
   const tsPath = join(siteDir, 'src', 'data', 'contracts', 'collections.contract.ts');
   if (!existsSync(tsPath)) return [];
   const raw = readFileSync(tsPath, 'utf8');
@@ -237,7 +271,6 @@ export function extractCollectionsFromContractTs(siteDir) {
 
   const literal = raw.slice(arrStart, arrEnd + 1);
   try {
-    // 安全受控解析：仅评估当前本地工程内的纯对象字面量数组
     const fn = new Function(`"use strict"; return (${literal});`);
     const parsed = fn();
     return Array.isArray(parsed) ? parsed : [];
@@ -248,32 +281,12 @@ export function extractCollectionsFromContractTs(siteDir) {
 
 export function inspectSiteCmsContract(siteKeyRaw, sitesDirOverride = '') {
   const detail = getSiteDetail(siteKeyRaw, sitesDirOverride);
-  const siteDir = detail.path;
-  const collections = extractCollectionsFromContractTs(siteDir);
-  const validation = validateCmsContract(detail.siteKey, collections);
-  writeJsonPretty(join(siteDir, '.webdesign', 'cms-contract.json'), {
-    updatedAt: new Date().toISOString(),
-    namespace: validation.namespace,
-    valid: validation.valid,
-    collections: validation.collections,
-  });
-  return validation;
-}
-
-export function saveSiteCmsContract(siteKeyRaw, collections, sitesDirOverride = '') {
-  const detail = getSiteDetail(siteKeyRaw, sitesDirOverride);
-  const validation = validateCmsContract(detail.siteKey, collections);
-  writeJsonPretty(join(detail.path, '.webdesign', 'cms-contract.json'), {
-    updatedAt: new Date().toISOString(),
-    namespace: validation.namespace,
-    valid: validation.valid,
-    collections,
-  });
-  return validation;
+  const collections = extractCollectionsFromContractTs(detail.path);
+  return validateCmsContract(detail.siteKey, collections);
 }
 
 /**
- * 确定性 SEO & GEO 合规体检器（供 Web 工作台展示及 Agent 自检闭环调用）。
+ * 确定性 SEO & GEO 合规体检器（供 Agent 在对话开发与上线前调用）。
  */
 export function auditSiteSeoGeo(siteKeyRaw, sitesDirOverride = '') {
   const detail = getSiteDetail(siteKeyRaw, sitesDirOverride);
@@ -318,10 +331,9 @@ export function auditSiteSeoGeo(siteKeyRaw, sitesDirOverride = '') {
     existsSync(join(siteDir, 'src', 'middleware.ts')) &&
       existsSync(join(siteDir, 'src', 'pages', 'api', 'revalidate.ts')),
     '48h 边缘 HTML 缓存与 /api/revalidate',
-    '保障 Cloudflare Pages 高并发命中率与后台更新精准清缓存'
+    '保障 Cloudflare 高并发命中率与后台更新精准清缓存'
   );
 
-  // 扫描 [locale] 页面中的 <h1> 与 BaseLayout 接入情况
   const localePagesDir = join(siteDir, 'src', 'pages', '[locale]');
   const pageFiles = [];
   const walkAstro = (dir) => {
@@ -358,19 +370,20 @@ export function auditSiteSeoGeo(siteKeyRaw, sitesDirOverride = '') {
     'GEO',
     geoAnswerUsedCount >= 2,
     `核心页面 GeoAnswer 覆盖率（已接入 ${geoAnswerUsedCount} 类页面）`,
-    geoAnswerUsedCount >= 2 ? '首页与详情页已挂载 GEO 简答摘要' : '建议至少在首页与产品/文章详情页挂载 <GeoAnswer />'
+    geoAnswerUsedCount >= 2 ? '首页与详情页已挂载 GEO 简答摘要' : '建议至少在首页与详情页挂载 <GeoAnswer />'
   );
 
-  // 检查 seed.json 中的 short_answer 字段完备度
-  const seed = readJsonSafe(join(siteDir, 'src', 'data', 'mocks', 'seed.json'), {});
+  const companySeed = readJsonSafe(join(siteDir, 'seed', 'company_info.json'), {});
   const defLoc = detail.defaultLocale || 'en-US';
-  const companyShort = seed?.company_info?.[defLoc]?.short_answer;
+  const firstLocales = companySeed?.items?.[0]?.locales || {};
+  const companyRow = firstLocales[defLoc] || Object.values(firstLocales)[0] || {};
+  const companyShort = companyRow?.short_answer;
   push(
     'seed-short-answer',
     'GEO',
     Boolean(companyShort && String(companyShort).trim().length >= 20),
-    '主语种企业 GEO 简答数据完备度',
-    companyShort ? '已提供高信息密度的企业核心摘要' : 'mocks/seed.json 缺少 company_info.short_answer'
+    'seed/company_info.json 企业 GEO 简答完备度',
+    companyShort ? '已提供高信息密度的企业核心摘要' : 'seed/company_info.json 缺少 short_answer'
   );
 
   const passed = checks.filter((c) => c.ok).length;
@@ -384,148 +397,15 @@ export function auditSiteSeoGeo(siteKeyRaw, sitesDirOverride = '') {
   };
 }
 
-function runNpmCommand(cwd, args, timeoutMs = 240000) {
-  return new Promise((resolveCmd, reject) => {
-    const isWin = process.platform === 'win32';
-    const cmd = isWin ? 'cmd.exe' : 'npm';
-    const fullArgs = isWin ? ['/d', '/s', '/c', `npm ${args.join(' ')}`] : args;
-    const child = spawn(cmd, fullArgs, {
-      cwd,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
-    });
-    let out = '';
-    let err = '';
-    const timer = setTimeout(() => {
-      try {
-        child.kill();
-      } catch {
-        // ignore
-      }
-      reject(new Error(`执行 npm ${args.join(' ')} 超时`));
-    }, timeoutMs);
-
-    child.stdout.on('data', (d) => {
-      out += d.toString();
-    });
-    child.stderr.on('data', (d) => {
-      err += d.toString();
-    });
-    child.on('close', (code) => {
-      clearTimeout(timer);
-      if (code === 0) {
-        resolveCmd({ stdout: out, stderr: err });
-      } else {
-        reject(new Error(`npm ${args.join(' ')} 退出码 ${code}:\n${(err || out).slice(-1200)}`));
-      }
-    });
-  });
-}
-
-async function ensureSiteDependencies(siteDir) {
-  const astroBin = join(siteDir, 'node_modules', 'astro');
-  if (existsSync(astroBin)) return;
-  await runNpmCommand(siteDir, ['install', '--prefer-offline', '--no-audit', '--no-fund'], 900000);
-}
-
-export function getPreviewStatus(siteKeyRaw) {
-  const siteKey = sanitizeSiteKey(siteKeyRaw);
-  const item = previewProcesses.get(siteKey);
-  if (!item) {
-    return { running: false, url: null, port: null };
-  }
-  return {
-    running: true,
-    port: item.port,
-    url: `http://127.0.0.1:${item.port}/`,
-    startedAt: item.startedAt,
-    recentLogs: item.logs.slice(-15),
-  };
-}
-
-export async function startSitePreview(siteKeyRaw, sitesDirOverride = '') {
-  const detail = getSiteDetail(siteKeyRaw, sitesDirOverride);
-  const existing = previewProcesses.get(detail.siteKey);
-  if (existing) {
-    return getPreviewStatus(detail.siteKey);
-  }
-
-  await ensureSiteDependencies(detail.path);
-  const port = await findFreePort(4321);
-  const isWin = process.platform === 'win32';
-  const cmd = isWin ? 'cmd.exe' : 'npx';
-  const args = isWin
-    ? ['/d', '/s', '/c', `npx astro dev --host 127.0.0.1 --port ${port}`]
-    : ['astro', 'dev', '--host', '127.0.0.1', '--port', String(port)];
-
-  const child = spawn(cmd, args, {
-    cwd: detail.path,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    windowsHide: true,
-  });
-
-  const logs = [];
-  const pushLog = (chunk) => {
-    const lines = chunk.toString().split(/\r?\n/).filter(Boolean);
-    logs.push(...lines);
-    if (logs.length > 60) logs.splice(0, logs.length - 60);
-  };
-  child.stdout.on('data', pushLog);
-  child.stderr.on('data', pushLog);
-  child.on('exit', () => {
-    previewProcesses.delete(detail.siteKey);
-  });
-
-  previewProcesses.set(detail.siteKey, {
-    pid: child.pid,
-    port,
-    child,
-    startedAt: new Date().toISOString(),
-    logs,
-  });
-
-  // 等待端口可响应
-  for (let i = 0; i < 32; i++) {
-    await new Promise((r) => setTimeout(r, 350));
-    try {
-      const res = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
-        signal: AbortSignal.timeout(1200),
-      });
-      if (res.ok) break;
-    } catch {
-      // keep waiting
-    }
-  }
-
-  return getPreviewStatus(detail.siteKey);
-}
-
-export function stopSitePreview(siteKeyRaw) {
-  const siteKey = sanitizeSiteKey(siteKeyRaw);
-  const item = previewProcesses.get(siteKey);
-  if (!item) return { running: false };
-  try {
-    if (process.platform === 'win32' && item.pid) {
-      spawn('taskkill', ['/PID', String(item.pid), '/T', '/F'], { windowsHide: true });
-    } else {
-      item.child.kill('SIGTERM');
-    }
-  } catch {
-    // ignore
-  }
-  previewProcesses.delete(siteKey);
-  return { running: false };
-}
-
-export function stopAllPreviews() {
-  for (const key of previewProcesses.keys()) {
-    stopSitePreview(key);
-  }
-}
-
 export async function buildSiteForProduction(siteKeyRaw, sitesDirOverride = '') {
   const detail = getSiteDetail(siteKeyRaw, sitesDirOverride);
-  await ensureSiteDependencies(detail.path);
+  if (!existsSync(join(detail.path, 'node_modules', 'astro'))) {
+    await runNpmCommand(
+      detail.path,
+      ['install', '--prefer-offline', '--no-audit', '--no-fund'],
+      900000
+    );
+  }
   const res = await runNpmCommand(detail.path, ['run', 'build'], 300000);
   const distDir = join(detail.path, 'dist').replace(/\\/g, '/');
   return {

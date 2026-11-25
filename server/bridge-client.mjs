@@ -64,26 +64,18 @@ export async function getBridgeContextSafe() {
       bridgeOffline: true,
       message: err instanceof Error ? err.message : String(err),
       cms: { loggedIn: false, origin: null, sites: [] },
+      crm: { loggedIn: false, origin: null },
       cf: { authorized: false, accountId: null, zones: [] },
     };
   }
 }
 
-export async function openDeployCmsLogin(origin) {
-  return bridgeRequest('POST', '/v1/context/open-cms-login', { origin }, 15000);
-}
-
 export async function listDeployTools() {
-  return bridgeRequest('GET', '/v1/tools', undefined, 10000);
-}
-
-export async function callDeployToolMcp(toolId, toolName, args = {}, timeoutSecs = 45) {
-  return bridgeRequest(
-    'POST',
-    '/v1/tools/call',
-    { toolId, toolName, arguments: args, timeoutSecs },
-    (timeoutSecs + 5) * 1000
-  );
+  try {
+    return await bridgeRequest('GET', '/v1/tools', undefined, 10000);
+  } catch {
+    return { ok: false, tools: [] };
+  }
 }
 
 export async function listDeployAgents() {
@@ -96,6 +88,10 @@ export async function listDeployAgents() {
 
 export async function dispatchToDeployAgent(payload) {
   return bridgeRequest('POST', '/v1/agents/dispatch', payload, 60000);
+}
+
+export async function injectSeedViaBridge(payload) {
+  return bridgeRequest('POST', '/v1/cms/inject-seed', payload, 180000);
 }
 
 export async function deployStandaloneSiteViaBridge(payload) {

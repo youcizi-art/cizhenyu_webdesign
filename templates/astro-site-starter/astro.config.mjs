@@ -17,6 +17,7 @@ export default defineConfig({
     resolve: {
       alias: {
         '@': path.join(root, 'src'),
+        '@seed': path.join(root, 'seed'),
       },
     },
   },

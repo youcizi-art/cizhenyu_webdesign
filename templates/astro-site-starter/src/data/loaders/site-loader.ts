@@ -1,9 +1,12 @@
 /**
  * 双模数据加载器（页面唯一调用的数据入口）：
- * - dataSource = "mock" 时读取本地 mocks/seed.json（阶段一全静态构建与秒级预览）
- * - dataSource = "cms" 时自动切换为请求 cizhenyu_payload 公开接口 /api/p/*（阶段二后台对接零改页面）
+ * - dataSource = "mock" 时直接读取根目录 `seed/*.json`（与 Deploy `seed_inject` 完全同构，静态定稿后零转换一键灌入 CMS）
+ * - dataSource = "cms" 时自动请求 cizhenyu_payload 公开接口 `/api/p/*`
  */
-import seedData from '@/data/mocks/seed.json';
+import companySeed from '@seed/company_info.json';
+import productSeed from '@seed/product.json';
+import articleSeed from '@seed/article.json';
+import faqSeed from '@seed/faq.json';
 import {
   cmsFetchData,
   cmsSubmitForm,
@@ -14,6 +17,16 @@ import {
 } from '@/core/cms/client';
 import { getDataSourceMode, getSiteConfig } from '@/core/cms/runtime-env';
 import { getDefaultLocale, normalizeLocaleCode } from '@/core/i18n/locale';
+
+interface SeedEntry {
+  languageGroupKey: string;
+  locales: Record<string, Record<string, unknown>>;
+}
+
+interface SeedDocument {
+  collectionSlug: string;
+  items: SeedEntry[];
+}
 
 export interface CompanyProfile {
   name: string;
@@ -58,10 +71,17 @@ export interface FaqItem {
   answer: string;
 }
 
-function pickLocalizedMock<T>(bucket: Record<string, T>, locale: string): T {
+function pickSeedLocaleRow(
+  localesMap: Record<string, Record<string, unknown>>,
+  locale: string
+): Record<string, unknown> {
   const code = normalizeLocaleCode(locale);
   const def = getDefaultLocale();
-  return bucket[code] ?? bucket[def] ?? Object.values(bucket)[0];
+  return localesMap[code] ?? localesMap[def] ?? Object.values(localesMap)[0] ?? {};
+}
+
+function extractSeedRows(doc: SeedDocument, locale: string): Array<Record<string, unknown>> {
+  return (doc.items || []).map((item) => pickSeedLocaleRow(item.locales || {}, locale));
 }
 
 function parseSpecArray(raw: unknown): Array<{ label: string; value: string }> {
@@ -86,35 +106,72 @@ function parseSpecArray(raw: unknown): Array<{ label: string; value: string }> {
   return [];
 }
 
+function mapCompanyRow(
+  row: Record<string, unknown>,
+  fallback?: Partial<CompanyProfile>
+): CompanyProfile {
+  return {
+    name: String(row.company_name || row.name || fallback?.name || 'Site'),
+    slogan: String(row.slogan || fallback?.slogan || ''),
+    summary: String(row.summary || fallback?.summary || ''),
+    short_answer: String(row.short_answer || row.summary || fallback?.short_answer || ''),
+    email: String(row.email || fallback?.email || ''),
+    phone: String(row.phone || fallback?.phone || ''),
+    address: String(row.address || fallback?.address || ''),
+    logo: resolveMediaUrl(row.logo) || fallback?.logo,
+    highlights: Array.isArray(row.highlights)
+      ? (row.highlights as Array<{ metric: string; label: string }>)
+      : fallback?.highlights,
+  };
+}
+
+function mapProductRow(row: Record<string, unknown>): ProductItem {
+  return {
+    slug: String(row.slug || row.id || ''),
+    title: String(row.title || ''),
+    sku: String(row.sku || ''),
+    category_label: String(row.category_label || ''),
+    summary: String(row.summary || ''),
+    short_answer: String(row.short_answer || ''),
+    cover: resolveMediaUrl(row.cover),
+    content: String(row.content || ''),
+    spec_data: parseSpecArray(row.spec_data),
+    seo_title: String(row.seo_title || ''),
+    seo_description: String(row.seo_description || ''),
+  };
+}
+
+function mapArticleRow(row: Record<string, unknown>): ArticleItem {
+  return {
+    slug: String(row.slug || row.id || ''),
+    title: String(row.title || ''),
+    author: String(row.author || ''),
+    summary: String(row.summary || ''),
+    short_answer: String(row.short_answer || ''),
+    cover: resolveMediaUrl(row.cover),
+    content: String(row.content || ''),
+    seo_title: String(row.seo_title || ''),
+    seo_description: String(row.seo_description || ''),
+  };
+}
+
 export async function loadCompanyProfile(locale: string): Promise<CompanyProfile> {
   const loc = normalizeLocaleCode(locale);
-  const mockFallback = pickLocalizedMock(
-    seedData.company_info as Record<string, CompanyProfile>,
-    loc
-  );
+  const seedRows = extractSeedRows(companySeed as unknown as SeedDocument, loc);
+  const mockFallback = mapCompanyRow(seedRows[0] || {});
   if (getDataSourceMode() === 'mock') {
     return mockFallback;
   }
   const path = collectionFullPath('settings', 'company_info');
   const raw = await cmsFetchData<Record<string, unknown>>(`data/${path}/single`, { locale: loc });
   const row = normalizeEntityRow<Record<string, unknown>>(raw);
-  return {
-    name: String(row.name || mockFallback.name),
-    slogan: String(row.slogan || mockFallback.slogan || ''),
-    summary: String(row.summary || mockFallback.summary || ''),
-    short_answer: String(row.short_answer || row.summary || ''),
-    email: String(row.email || mockFallback.email || ''),
-    phone: String(row.phone || mockFallback.phone || ''),
-    address: String(row.address || mockFallback.address || ''),
-    logo: resolveMediaUrl(row.logo),
-    highlights: mockFallback.highlights,
-  };
+  return mapCompanyRow(row, mockFallback);
 }
 
 export async function loadProducts(locale: string): Promise<ProductItem[]> {
   const loc = normalizeLocaleCode(locale);
   if (getDataSourceMode() === 'mock') {
-    return pickLocalizedMock(seedData.product as Record<string, ProductItem[]>, loc);
+    return extractSeedRows(productSeed as unknown as SeedDocument, loc).map(mapProductRow);
   }
   const path = collectionFullPath('products', 'product');
   const payload = await cmsFetchData<PublicListPayload>(`data/${path}`, {
@@ -122,22 +179,7 @@ export async function loadProducts(locale: string): Promise<ProductItem[]> {
     page: 1,
     pageSize: 50,
   });
-  return (payload.list || []).map((item) => {
-    const row = normalizeEntityRow<Record<string, unknown>>(item);
-    return {
-      slug: String(row.slug || row.id || ''),
-      title: String(row.title || ''),
-      sku: String(row.sku || ''),
-      category_label: String(row.category_label || ''),
-      summary: String(row.summary || ''),
-      short_answer: String(row.short_answer || ''),
-      cover: resolveMediaUrl(row.cover),
-      content: String(row.content || ''),
-      spec_data: parseSpecArray(row.spec_data),
-      seo_title: String(row.seo_title || ''),
-      seo_description: String(row.seo_description || ''),
-    };
-  });
+  return (payload.list || []).map((item) => mapProductRow(normalizeEntityRow(item)));
 }
 
 export async function loadProductBySlug(locale: string, slug: string): Promise<ProductItem | null> {
@@ -148,7 +190,7 @@ export async function loadProductBySlug(locale: string, slug: string): Promise<P
 export async function loadArticles(locale: string): Promise<ArticleItem[]> {
   const loc = normalizeLocaleCode(locale);
   if (getDataSourceMode() === 'mock') {
-    return pickLocalizedMock(seedData.article as Record<string, ArticleItem[]>, loc);
+    return extractSeedRows(articleSeed as unknown as SeedDocument, loc).map(mapArticleRow);
   }
   const path = collectionFullPath('content', 'article');
   const payload = await cmsFetchData<PublicListPayload>(`data/${path}`, {
@@ -156,20 +198,7 @@ export async function loadArticles(locale: string): Promise<ArticleItem[]> {
     page: 1,
     pageSize: 50,
   });
-  return (payload.list || []).map((item) => {
-    const row = normalizeEntityRow<Record<string, unknown>>(item);
-    return {
-      slug: String(row.slug || row.id || ''),
-      title: String(row.title || ''),
-      author: String(row.author || ''),
-      summary: String(row.summary || ''),
-      short_answer: String(row.short_answer || ''),
-      cover: resolveMediaUrl(row.cover),
-      content: String(row.content || ''),
-      seo_title: String(row.seo_title || ''),
-      seo_description: String(row.seo_description || ''),
-    };
-  });
+  return (payload.list || []).map((item) => mapArticleRow(normalizeEntityRow(item)));
 }
 
 export async function loadArticleBySlug(locale: string, slug: string): Promise<ArticleItem | null> {
@@ -180,7 +209,10 @@ export async function loadArticleBySlug(locale: string, slug: string): Promise<A
 export async function loadFaqs(locale: string): Promise<FaqItem[]> {
   const loc = normalizeLocaleCode(locale);
   if (getDataSourceMode() === 'mock') {
-    return pickLocalizedMock(seedData.faq as Record<string, FaqItem[]>, loc);
+    return extractSeedRows(faqSeed as unknown as SeedDocument, loc).map((row) => ({
+      question: String(row.question || row.title || ''),
+      answer: String(row.answer || row.content || ''),
+    }));
   }
   const path = collectionFullPath('content', 'faq');
   const payload = await cmsFetchData<PublicListPayload>(`data/${path}`, {
@@ -226,7 +258,7 @@ export async function submitSiteInquiry(payload: {
     return {
       ok: true,
       mode: 'mock',
-      msg: 'Static preview mode: inquiry validated locally (connect CMS in Phase 2 to persist to database).',
+      msg: 'Static preview mode: inquiry validated locally.',
     };
   }
   const res = await cmsSubmitForm('business', 'inquiry', payload);

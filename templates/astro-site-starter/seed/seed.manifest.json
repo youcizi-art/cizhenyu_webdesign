@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "locales": ["en-US", "zh-CN"],
+  "seedOrder": [
+    "company_info.json",
+    "product.json",
+    "article.json",
+    "faq.json"
+  ]
+}

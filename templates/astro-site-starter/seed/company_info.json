@@ -1,0 +1,38 @@
+{
+  "collectionSlug": "b2b_company_info",
+  "items": [
+    {
+      "languageGroupKey": "site0000-comp-4000-8000-000000000001",
+      "locales": {
+        "en-US": {
+          "company_name": "PrecisionTech Solutions",
+          "slogan": "Engineered Reliability for Global Manufacturing",
+          "summary": "PrecisionTech designs and manufactures high-accuracy optical inspection and automation systems for industrial B2B partners across North America, Europe, and Asia.",
+          "short_answer": "PrecisionTech Solutions is an OEM/ODM manufacturer specializing in sub-micron optical inspection and automated industrial assembly systems with global technical support.",
+          "email": "sales@example-precision.com",
+          "phone": "+1 (555) 234-8900",
+          "address": "Innovation Park, Suite 400, Austin, TX",
+          "highlights": [
+            { "metric": "0.5 um", "label": "Repeatability Accuracy" },
+            { "metric": "48 hrs", "label": "Engineering Sample Turnaround" },
+            { "metric": "30+ Countries", "label": "Deployed Production Lines" }
+          ]
+        },
+        "zh-CN": {
+          "company_name": "精工智测科技 (PrecisionTech)",
+          "slogan": "面向全球制造业的高可靠精密检测与自动化方案",
+          "summary": "专注于亚微米级光学检测与工业自动化集成系统，为北美、欧洲及亚太制造企业提供定制化 OEM/ODM 交付与工程技术支持。",
+          "short_answer": "精工智测科技是一家专注于亚微米光学检测设备与自动化装配产线的研发制造企业，支持定制化工程打样与多语种交付支持。",
+          "email": "sales@example-precision.com",
+          "phone": "+86 400-800-0000",
+          "address": "智造科技产业园 A 座 400 室",
+          "highlights": [
+            { "metric": "0.5 微米", "label": "重复定位检测精度" },
+            { "metric": "48 小时", "label": "工程样品评估响应" },
+            { "metric": "30+ 国家", "label": "产线稳定运行覆盖" }
+          ]
+        }
+      }
+    }
+  ]
+}

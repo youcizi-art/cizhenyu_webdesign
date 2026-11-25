@@ -1,0 +1,39 @@
+{
+  "collectionSlug": "b2b_faq",
+  "items": [
+    {
+      "languageGroupKey": "site0000-faq-4000-8000-000000000001",
+      "locales": {
+        "en-US": {
+          "status": "published",
+          "sort_order": 1,
+          "question": "Can systems be customized for non-standard substrate sizes and cleanroom environments?",
+          "answer": "Yes. Both optical gantry spans and motion stage stroke lengths can be tailored to custom carrier dimensions, with ISO Class 5 cleanroom-compatible cabling and materials available."
+        },
+        "zh-CN": {
+          "status": "published",
+          "sort_order": 1,
+          "question": "设备是否支持非标载具尺寸定制与无尘洁净室环境改造？",
+          "answer": "支持。光学龙门跨距与直线平台行程均可按客户载具图纸定制，并可选配符合 ISO Class 5 标准的低发尘拖链与密封材料。"
+        }
+      }
+    },
+    {
+      "languageGroupKey": "site0000-faq-4000-8000-000000000002",
+      "locales": {
+        "en-US": {
+          "status": "published",
+          "sort_order": 2,
+          "question": "How is sample evaluation conducted before placing an OEM order?",
+          "answer": "Send sample assemblies or CAD drawings to our application lab. Within 48 hours of receipt, we provide a full repeatability report, cycle-time simulation, and imaging dataset."
+        },
+        "zh-CN": {
+          "status": "published",
+          "sort_order": 2,
+          "question": "在正式采购或 OEM 合作前，如何进行样品实测评估？",
+          "answer": "您可将测试样品或 CAD 图纸寄送至我们的应用实验室，收到样品后 48 小时内即可出具完整的检测重复性报告、节拍测算与实拍图像集。"
+        }
+      }
+    }
+  ]
+}

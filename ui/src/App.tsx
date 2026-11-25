@@ -1,207 +1,188 @@
-import { useEffect, useState } from 'react';
-import { Database, Eye, Rocket, Sparkles, X } from 'lucide-react';
-import { BriefStudioPanel } from './components/BriefStudioPanel';
-import { CmsWiringPanel } from './components/CmsWiringPanel';
-import { PreviewAndAuditPanel } from './components/PreviewAndAuditPanel';
-import { PublishPagesPanel } from './components/PublishPagesPanel';
-import { StudioSidebar } from './components/StudioSidebar';
+import { useState, type FormEvent } from 'react';
+import { Bot, CheckCircle2, CircleDashed, Layers, Plus, RefreshCw } from 'lucide-react';
+import { SiteProjectCard } from './components/SiteProjectCard';
 import { useStudioApi } from './hooks/useStudioApi';
+import './styles/studio.css';
 
-type TabKey = 'brief' | 'preview' | 'cms' | 'publish';
-
+/**
+ * WebDesign Studio 极简站点启动器：
+ * 1. 在 {workRoot}/sites/<siteKey> 创建 Astro v7 基础工程、注入全套 Skills 并自动安装依赖；
+ * 2. 一键挂载 cmsmcp / crmmcp / Deploy MCP 并打开 Agent，在对话中完成建站、数据对接与部署上线。
+ */
 export function App() {
-  const api = useStudioApi();
-  const [activeTab, setActiveTab] = useState<TabKey>('brief');
-  const [isCreatingNew, setIsCreatingNew] = useState<boolean>(false);
-  const [selectedAgentId, setSelectedAgentId] = useState<string>('opencode_agent');
+  const {
+    bootstrap,
+    selectedAgentId,
+    setSelectedAgentId,
+    loading,
+    busyKey,
+    banner,
+    setBanner,
+    loadBootstrap,
+    createSite,
+    openWithAgent,
+    retryInstall,
+    openFolder,
+    deleteSite,
+  } = useStudioApi();
 
-  useEffect(() => {
-    const list = api.bootstrap?.agents || [];
-    if (list.length > 0 && !list.some((a) => a.id === selectedAgentId)) {
-      setSelectedAgentId(list[0].id);
+  const [siteKey, setSiteKey] = useState('');
+  const [displayName, setDisplayName] = useState('');
+
+  const handleCreate = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!siteKey.trim()) return;
+    const created = await createSite(siteKey, displayName);
+    if (created) {
+      setSiteKey('');
+      setDisplayName('');
     }
-  }, [api.bootstrap?.agents, selectedAgentId]);
-
-  useEffect(() => {
-    if (!api.loading && (api.bootstrap?.sites.length ?? 0) === 0) {
-      setIsCreatingNew(true);
-      setActiveTab('brief');
-    }
-  }, [api.loading, api.bootstrap?.sites.length]);
-
-  const handleSelectSite = (siteKey: string) => {
-    setIsCreatingNew(false);
-    api.setSelectedSiteKey(siteKey);
   };
 
-  const handleStartNew = () => {
-    setIsCreatingNew(true);
-    setActiveTab('brief');
-  };
+  const ctx = bootstrap?.context;
+  const agents = bootstrap?.agents || [];
+  const sites = bootstrap?.sites || [];
 
   return (
-    <div className="studio-shell">
-      <StudioSidebar
-        sites={api.bootstrap?.sites || []}
-        sitesRoot={api.bootstrap?.sitesRoot || ''}
-        selectedSiteKey={api.selectedSiteKey}
-        isCreatingNew={isCreatingNew}
-        context={api.bootstrap?.context || null}
-        onSelectSite={handleSelectSite}
-        onStartCreateNew={handleStartNew}
-        onRefresh={() => void api.loadBootstrap()}
-      />
-
-      <div className="studio-main">
-        <header className="studio-topbar">
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>
-              {isCreatingNew
-                ? '创建新的独立 Astro 前端站点'
-                : api.activeSite?.displayName || '请选择站点'}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {isCreatingNew
-                ? '先全静态快速生成与打磨，满意后再一键调起 Agent 对接 CMS 集合字段'
-                : `工程路径: ${api.activeSite?.path || ''}`}
-            </div>
+    <div className="launcher-page">
+      <header className="launcher-header">
+        <div>
+          <div className="brand-title">
+            <Layers size={20} color="#2563eb" />
+            <h1>WebDesign 站点工作区启动器</h1>
           </div>
-
-          {!isCreatingNew && api.activeSite ? (
-            <nav className="studio-tabs" aria-label="Studio workspace stages">
-              <button
-                type="button"
-                className="studio-tab"
-                data-active={activeTab === 'brief' ? 'true' : 'false'}
-                onClick={() => setActiveTab('brief')}
-              >
-                <Sparkles size={14} />
-                <span>1. 构想与静态设计</span>
-              </button>
-              <button
-                type="button"
-                className="studio-tab"
-                data-active={activeTab === 'preview' ? 'true' : 'false'}
-                onClick={() => setActiveTab('preview')}
-              >
-                <Eye size={14} />
-                <span>2. 预览与 SEO/GEO 体检</span>
-              </button>
-              <button
-                type="button"
-                className="studio-tab"
-                data-active={activeTab === 'cms' ? 'true' : 'false'}
-                onClick={() => setActiveTab('cms')}
-              >
-                <Database size={14} />
-                <span>3. CMS 字段对接</span>
-              </button>
-              <button
-                type="button"
-                className="studio-tab"
-                data-active={activeTab === 'publish' ? 'true' : 'false'}
-                onClick={() => setActiveTab('publish')}
-              >
-                <Rocket size={14} />
-                <span>4. 构建与 Pages 上线</span>
-              </button>
-            </nav>
-          ) : null}
-        </header>
-
-        {api.banner ? (
-          <div
-            className="banner-bar"
-            style={{
-              background:
-                api.banner.kind === 'error'
-                  ? 'var(--danger-bg)'
-                  : api.banner.kind === 'success'
-                    ? 'var(--success-bg)'
-                    : 'var(--accent-soft)',
-              color:
-                api.banner.kind === 'error'
-                  ? 'var(--danger-text)'
-                  : api.banner.kind === 'success'
-                    ? 'var(--success-text)'
-                    : 'var(--accent-primary)',
-            }}
-          >
-            <span style={{ wordBreak: 'break-word' }}>{api.banner.text}</span>
-            <button
-              type="button"
-              onClick={() => api.setBanner(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
-              aria-label="关闭提示"
-            >
-              <X size={15} />
-            </button>
-          </div>
-        ) : null}
-
-        <div className="studio-content">
-          {isCreatingNew || activeTab === 'brief' ? (
-            <BriefStudioPanel
-              site={api.activeSite}
-              isCreatingNew={isCreatingNew}
-              agents={api.bootstrap?.agents || []}
-              selectedAgentId={selectedAgentId}
-              busyAction={api.busyAction}
-              onChangeAgent={setSelectedAgentId}
-              onSaveOnly={async (payload) => {
-                const saved = await api.saveOrCreateSite(payload);
-                if (saved) {
-                  setIsCreatingNew(false);
-                }
-              }}
-              onDispatchAgent={async (siteKey, brief, agentId, extra) => {
-                setIsCreatingNew(false);
-                await api.dispatchStage1(siteKey, brief, agentId, extra);
-              }}
-              onOpenFolder={(siteKey) => void api.openSiteFolder(siteKey)}
-            />
-          ) : null}
-
-          {!isCreatingNew && api.activeSite && activeTab === 'preview' ? (
-            <PreviewAndAuditPanel
-              site={api.activeSite}
-              audit={api.audit}
-              busyAction={api.busyAction}
-              selectedAgentId={selectedAgentId}
-              onTogglePreview={api.togglePreview}
-              onOpenExternal={api.openExternal}
-              onRefreshAudit={api.loadSiteInspections}
-              onDispatchFix={async (siteKey, instruction) => {
-                await api.dispatchStage1(siteKey, api.activeSite!.brief, selectedAgentId, instruction);
-              }}
-            />
-          ) : null}
-
-          {!isCreatingNew && api.activeSite && activeTab === 'cms' ? (
-            <CmsWiringPanel
-              site={api.activeSite}
-              contract={api.contract}
-              context={api.bootstrap?.context || null}
-              selectedAgentId={selectedAgentId}
-              busyAction={api.busyAction}
-              onRefreshContract={api.loadSiteInspections}
-              onOpenCmsLogin={api.openCmsLogin}
-              onDispatchStage2={api.dispatchStage2}
-            />
-          ) : null}
-
-          {!isCreatingNew && api.activeSite && activeTab === 'publish' ? (
-            <PublishPagesPanel
-              site={api.activeSite}
-              context={api.bootstrap?.context || null}
-              busyAction={api.busyAction}
-              onRunBuild={api.runBuildOnly}
-              onPublishPages={api.publishToPages}
-              onOpenExternal={api.openExternal}
-            />
-          ) : null}
+          <p className="brand-subtitle">
+            创建即注入 Astro v7 基础工程、设计/SEO/GEO/CMS 规范与全链路 MCP；点击「用 Agent 打开」直接对话完成建站、数据灌入与部署。
+          </p>
         </div>
-      </div>
+
+        <div className="header-right">
+          <div className="env-badges">
+            <span className={`status-pill ${ctx?.cms?.loggedIn ? 'status-green' : 'status-neutral'}`}>
+              {ctx?.cms?.loggedIn ? <CheckCircle2 size={13} /> : <CircleDashed size={13} />}
+              <span>{ctx?.cms?.loggedIn ? 'CMS 已连接' : 'CMS 未登录'}</span>
+            </span>
+            <span className={`status-pill ${ctx?.crm?.loggedIn ? 'status-green' : 'status-neutral'}`}>
+              {ctx?.crm?.loggedIn ? <CheckCircle2 size={13} /> : <CircleDashed size={13} />}
+              <span>{ctx?.crm?.loggedIn ? 'CRM 已连接' : 'CRM 未登录'}</span>
+            </span>
+            <span className={`status-pill ${ctx?.cf?.authorized ? 'status-green' : 'status-neutral'}`}>
+              {ctx?.cf?.authorized ? <CheckCircle2 size={13} /> : <CircleDashed size={13} />}
+              <span>{ctx?.cf?.authorized ? 'CF 已授权' : 'CF 未授权'}</span>
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => void loadBootstrap(false)}
+          >
+            <RefreshCw size={14} />
+            <span>刷新</span>
+          </button>
+        </div>
+      </header>
+
+      {banner ? (
+        <div className={`banner banner-${banner.kind}`}>
+          <span>{banner.text}</span>
+          <button type="button" className="banner-close" onClick={() => setBanner(null)}>
+            关闭
+          </button>
+        </div>
+      ) : null}
+
+      <section className="create-section">
+        <form className="create-form" onSubmit={(e) => void handleCreate(e)}>
+          <div className="form-field">
+            <label htmlFor="site-key-input">新建站点标识 (siteKey) *</label>
+            <input
+              id="site-key-input"
+              className="input"
+              placeholder="例如: acme-dental（将创建于 sites/acme-dental）"
+              value={siteKey}
+              onChange={(e) => setSiteKey(e.target.value)}
+            />
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="display-name-input">显示名称（选填）</label>
+            <input
+              id="display-name-input"
+              className="input"
+              placeholder="例如: Acme Dental 官网"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary create-submit"
+            disabled={!siteKey.trim() || Boolean(busyKey)}
+          >
+            <Plus size={16} />
+            <span>{busyKey === 'create' ? '正在初始化…' : '创建站点并安装依赖'}</span>
+          </button>
+        </form>
+      </section>
+
+      <section className="list-section">
+        <div className="list-toolbar">
+          <div className="list-heading">
+            <span>站点目录：</span>
+            <code>{bootstrap?.sitesRoot || '{workRoot}/sites'}</code>
+            <span className="count-badge">{sites.length} 个站点</span>
+          </div>
+
+          <div className="agent-picker">
+            <Bot size={15} color="#475569" />
+            <label htmlFor="default-agent-select">打开使用的 Agent：</label>
+            <select
+              id="default-agent-select"
+              className="select"
+              value={selectedAgentId}
+              onChange={(e) => setSelectedAgentId(e.target.value)}
+            >
+              {agents.length > 0 ? (
+                agents.map((ag) => (
+                  <option key={ag.id} value={ag.id}>
+                    {ag.label} ({ag.id})
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="opencode_agent">CIZHENYU OpenCode (opencode_agent)</option>
+                  <option value="dsh_agent">CIZHENYU AGENT (dsh_agent)</option>
+                </>
+              )}
+            </select>
+          </div>
+        </div>
+
+        {loading && !bootstrap ? (
+          <div className="empty-box">正在加载本地站点列表…</div>
+        ) : sites.length === 0 ? (
+          <div className="empty-box">
+            暂无前端站点。在上方输入一个英文标识点击「创建站点并安装依赖」，即可用 Agent 对话构建你的第一个 Astro v7 站点。
+          </div>
+        ) : (
+          <div className="site-list">
+            {sites.map((site) => (
+              <SiteProjectCard
+                key={site.siteKey}
+                site={site}
+                selectedAgentId={selectedAgentId}
+                busyKey={busyKey}
+                onOpenAgent={openWithAgent}
+                onRetryInstall={retryInstall}
+                onOpenFolder={openFolder}
+                onDeleteSite={deleteSite}
+              />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

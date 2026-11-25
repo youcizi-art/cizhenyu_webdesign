@@ -5,7 +5,7 @@
   "category": "web",
   "tier": "recommended",
   "defaultLocale": "zh-CN",
-  "description": "Astro 前端站点可视化工作台：内置 SEO/GEO 优化，支持先构建全静态站点，满意后调起 Agent 完成 CMS 集合字段对接与 Pages 上线。",
+  "description": "Astro v7 前端站点装配启动器：一键在 sites/ 目录创建预置 SEO/GEO 的基础工程、安装依赖并挂载 CMS/CRM/Deploy 全能力打开 Agent 对话建站。",
   "source": {
     "github": "https://github.com/youcizi-art/cizhenyu_webdesign",
     "defaultRef": "master"

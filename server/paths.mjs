@@ -59,6 +59,12 @@ export function resolveCredentialsDir() {
  * 解析用户可见的站点工程根目录 `{workRoot}/sites`。
  */
 export function resolveSitesRoot(bridgeContextSitesDir = '') {
+  const testOverride = String(process.env.CIZHENYU_SITES_DIR_OVERRIDE || '').trim();
+  if (testOverride) {
+    const dir = resolve(testOverride);
+    mkdirSync(dir, { recursive: true });
+    return dir;
+  }
   if (bridgeContextSitesDir && String(bridgeContextSitesDir).trim()) {
     const dir = resolve(String(bridgeContextSitesDir).trim());
     mkdirSync(dir, { recursive: true });

@@ -1,0 +1,36 @@
+{
+  "collectionSlug": "b2b_article",
+  "items": [
+    {
+      "languageGroupKey": "site0000-art-4000-8000-000000000001",
+      "locales": {
+        "en-US": {
+          "status": "published",
+          "sort_order": 1,
+          "slug": "how-to-select-inline-3d-aoi-for-automotive-pcba",
+          "title": "How to Select an Inline 3D AOI System for Automotive PCBA Lines",
+          "author": "Application Engineering Team",
+          "summary": "Key optical, cycle-time, and MES traceability criteria when evaluating 3D inspection equipment for automotive electronics.",
+          "short_answer": "When selecting an inline 3D AOI for automotive PCBA, prioritize dual/quad-projector shadow suppression, Gage R&R under 10%, and native IPC-CFX traceability.",
+          "cover": "",
+          "content": "Automotive electronics demand strict solder joint volume measurement and pin-in-paste inspection without slowing line takt time. Evaluating projector geometry, telecentric lens distortion, and false-call tuning workflows upfront reduces commissioning time by over 40%.",
+          "seo_title": "Selecting Inline 3D AOI for Automotive PCBA | Technical Guide",
+          "seo_description": "Engineering checklist covering optical resolution, shadow suppression, Gage R&R, and IPC-CFX integration for automotive SMT lines."
+        },
+        "zh-CN": {
+          "status": "published",
+          "sort_order": 1,
+          "slug": "how-to-select-inline-3d-aoi-for-automotive-pcba",
+          "title": "汽车电子 PCBA 产线如何科学选型在线 3D AOI 设备",
+          "author": "应用工程团队",
+          "summary": "从多向投影消影、节拍匹配、Gage R&R 重复性及 MES 追溯协议四个维度拆解选型指标。",
+          "short_answer": "汽车电子 PCBA 选型在线 3D AOI 时，核心应核验多向结构光消影能力、小于 10% 的 Gage R&R 指标以及原生 IPC-CFX 追溯对接能力。",
+          "cover": "",
+          "content": "车规级电子装联对焊锡体积测量与通孔回流焊检测提出了极高要求。提前评估远心镜头畸变率、高元件阴影抑制算法及换线编程效率，可将产线导入调试周期缩短 40% 以上。",
+          "seo_title": "汽车电子在线 3D AOI 选型技术指南 | 精工智测",
+          "seo_description": "详解车规级 SMT 产线 3D AOI 光学分辨率、阴影抑制、Gage R&R 与智能工厂协议选型标准。"
+        }
+      }
+    }
+  ]
+}

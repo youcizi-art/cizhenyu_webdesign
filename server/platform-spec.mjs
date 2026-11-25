@@ -1,5 +1,5 @@
 /**
- * 平台通用基线配置生成器、cizhenyu_payload 三层字段合规校验器及两阶段 Agent 任务书生成器。
+ * cizhenyu_payload 三层字段合规校验器与单站 AGENTS.md 生成器。
  */
 
 export const SYSTEM_RESERVED_COLUMNS = [
@@ -48,51 +48,6 @@ export const GLOBAL_SHARED_MODELS = [
   'online_message',
 ];
 
-export function buildPlatformBaselineSpec(siteKey) {
-  return {
-    version: 1,
-    siteKey,
-    architecture: 'single-site-astro-v5',
-    seoBaseline: {
-      requiredHeadComponent: 'src/core/seo/SeoHead.astro',
-      requiredRoutes: ['/robots.txt', '/sitemap.xml', '/llms.txt', '/api/revalidate'],
-      perPageRules: [
-        '每个页面必须且仅包含一个语义化 <h1>',
-        '所有页面通过 BaseLayout 注入 canonical、hreflang（含 x-default）、OpenGraph 与 Schema.org JSON-LD',
-      ],
-    },
-    geoBaseline: {
-      requiredAnswerComponent: 'src/core/geo/GeoAnswer.astro',
-      requiredSpecComponent: 'src/core/geo/SpecTable.astro',
-      rules: [
-        '首页、产品详情页、核心文章/方案页必须输出 short_answer 简答块（供 AI 搜索引擎直接引用事实）',
-        '严禁捏造未提供的认证编号、客户背书或销量数据',
-      ],
-    },
-    cmsContractRules: {
-      collectionSlugPattern: `${siteKey}_{logical}`,
-      navGroupRoot: siteKey,
-      publicReadEndpointPattern: `/api/p/data/${siteKey}/{groupSubPath}/${siteKey}_{logical}`,
-      publicSubmitEndpointPattern: `/api/p/submit/${siteKey}/business/${siteKey}_{logical}`,
-      systemReservedColumns: SYSTEM_RESERVED_COLUMNS,
-      allowedFieldTypes: ALLOWED_CMS_FIELD_TYPES,
-      globalSharedModels: GLOBAL_SHARED_MODELS,
-      capabilityFields: {
-        status: {
-          capability: 'public_visibility',
-          type: 'select',
-          options: ['draft', 'published'],
-          note: '展示类集合开启；表单提交类集合（inquiry/online_message）严禁添加 status',
-        },
-        sort_order: {
-          capability: 'list_ordering',
-          type: 'number',
-        },
-      },
-    },
-  };
-}
-
 /**
  * 校验站点的 CMS 集合与字段契约是否 100% 符合 cizhenyu_payload 三层字段与命名空间规范。
  */
@@ -107,8 +62,8 @@ export function validateCmsContract(siteKey, collections = []) {
     errors.push(`站点 CMS 命名空间 "${ns}" 不符合小写字母/数字/下划线规则`);
   }
   if (!Array.isArray(collections) || collections.length === 0) {
-    errors.push('未检测到任何集合契约定义');
-    return { valid: false, errors, warnings, collections: [] };
+    errors.push('未检测到任何集合契约定义（请检查 src/data/contracts/collections.contract.ts）');
+    return { valid: false, namespace: ns, errors, warnings, collections: [] };
   }
 
   const seenCollectionSlugs = new Set();
@@ -132,7 +87,7 @@ export function validateCmsContract(siteKey, collections = []) {
     const isShared = GLOBAL_SHARED_MODELS.includes(modelSlug);
     if (!isShared && !modelSlug.startsWith(`${ns}_`)) {
       warnings.push(
-        `集合 "${fullSlug}" 使用了非标准全局模型 "${modelSlug}"，建议命名为 "${ns}_${modelSlug}" 以免跨站点模型冲突`
+        `集合 "${fullSlug}" 使用了非标准全局模型 "${modelSlug}"，建议命名为 "${ns}_${modelSlug}" 以防跨站模型冲突`
       );
       modelSlug = `${ns}_${modelSlug}`;
     }
@@ -160,7 +115,7 @@ export function validateCmsContract(siteKey, collections = []) {
         errors.push(`[${fullSlug}.${fname}] 字段类型 "${ftype}" 不在 cizhenyu_payload 支持范围内`);
       }
       if (fname === 'status' && apiMode === 'submit_only') {
-        errors.push(`[${fullSlug}] 表单提交集合禁止包含 status 保留字段（否则会拦截匿名行为或引发歧义）`);
+        errors.push(`[${fullSlug}] 表单提交集合禁止包含 status 保留字段`);
       }
       if (fname === 'status' && ftype !== 'select') {
         errors.push(`[${fullSlug}.status] 保留字段 status 类型必须为 select`);
@@ -193,82 +148,21 @@ export function validateCmsContract(siteKey, collections = []) {
   };
 }
 
-export function generateSiteAgentsMd(brief) {
-  return `# ${brief.displayName || brief.siteKey} — 单站 Astro 工程协作规范
+export function generateSiteAgentsMd(siteKey, displayName) {
+  const ns = siteKey.replace(/-/g, '_');
+  return `# ${displayName || siteKey} — Astro v7 单站开发与全链路交付指南
 
-本目录是由 **Cizhenyu WebDesign Studio** 创建的独立 Astro v7 前端站点工程（\`{workRoot}/sites/${brief.siteKey}\`）。
+本工作区是由 **WebDesign Studio** 初始化的独立 **Astro v7 (\`^7.4.12\`) + \`@astrojs/cloudflare\` v14** 前端站点工程（站点目录标识：\`${siteKey}\`，CMS 集合命名空间：\`${ns}_*\`）。
 
-## 必读上下文文件
-1. **当次任务指令**：\`.webdesign/TASK.md\`（每次由 WebDesign 派单更新，请优先阅读并严格执行！）
-2. **站点特殊配置**：\`.webdesign/site-brief.json\`（用户的建站一句话构想、品牌色调、参考站、栏目偏好、语种及原始素材）
-3. **平台通用配置**：\`.webdesign/platform-spec.json\`（预置的 SEO/GEO 标准与 \`cizhenyu_payload\` 集合字段契约规范）
+## 1. 已注入项目的三大核心 Skills（动手前必读）
+请在 \`.agents/skills/\`（或 \`.opencode/skill/\`）下按当前任务阶段查阅对应规范：
+1. **\`astro-frontend-design\`**：高审美前端视觉设计、CSS 变量定制、响应式版式与 \`seed/\` 静态期数据规范。
+2. **\`seo-geo-optimization\`**：预置 \`SeoHead\`、唯一 \`<h1>\`、Schema.org JSON-LD、\`/llms.txt\`、\`<GeoAnswer />\` 与 48h 边缘缓存标准。
+3. **\`cms-crm-deploy-workflow\`**：\`cizhenyu_payload\` 三层字段铁律、\`cmsmcp\` 幂等建表、\`crmmcp\` / CRM 挂件接入、\`deploy_inject_seed\` 数据上云与 \`deploy_publish_site\` 边缘部署流程。
 
-## 核心工程红线
-- **单站纯净架构**：禁止引入多主题分发层；所有视觉组件直接写在 \`src/components/\` 与 \`src/pages/[locale]/\`。
-- **保护核心底座**：保留 \`src/core/\`（SEOHead、Schema.org JSON-LD、GeoAnswer、llms.txt、48h 边缘 HTML 缓存与 revalidate）正常工作。
-- **两阶段数据解耦**：
-  - **阶段一（全静态构建）**：\`src/data/site.config.json\` 保持 \`"dataSource": "mock"\`，所有展示数据集中在 \`src/data/mocks/seed.json\`，页面统一经 \`src/data/loaders/site-loader.ts\` 取数。
-  - **阶段二（CMS 对接）**：按 \`.webdesign/cms-contract.json\` 调用 \`cmsmcp\` 创建 \`${brief.siteKey.replace(/-/g, '_')}_*\` 集合并导入初始数据，仅切换 \`dataSource\` 与 \`loaders/\`，不破坏已定稿的前端视觉。
-- **视觉与数据诚实**：禁止使用 Emoji 作为界面图标；禁止编造用户未提供的证书编号、客户评价或销量排名。
-`;
-}
-
-export function generateStage1TaskMarkdown(brief, extraInstruction = '') {
-  const refList = (brief.referenceUrls || []).filter(Boolean);
-  const pagesList = (brief.desiredPages || []).filter(Boolean);
-  return `# 阶段一任务单：构建 / 迭代全静态 Astro 前端站点
-
-- **站点标识 (siteKey)**：\`${brief.siteKey}\`
-- **站点名称**：${brief.displayName || brief.siteKey}
-- **启用语种**：${(brief.locales || ['en-US']).join(', ')}（默认主语种：\`${brief.defaultLocale || 'en-US'}\`）
-
-## 1. 用户建站核心构想
-> ${brief.oneLiner || '请结合站点名称构建现代、专业、高转化的企业前端独立站。'}
-
-${extraInstruction ? `## 2. 本次迭代补充要求\n${extraInstruction}\n` : ''}
-## 3. 已提供的个性化设置（未填项请结合行业特征自主设计最优方案）
-- **色调与视觉风格**：主色 \`${brief.primaryColor || 'auto'}\` · 辅色 \`${brief.accentColor || 'auto'}\` · 明暗气质 \`${brief.surfaceMode || 'auto'}\` · 风格备注：${brief.styleNotes || '现代简洁、高可读性'}
-- **参考网站 URL**：${refList.length ? refList.join(' , ') : '未指定'}
-- **期望栏目结构**：${pagesList.length ? pagesList.join(' / ') : '由你根据业务构想自动规划合理栏目'}
-- **企业与产品原始资料**：
-${brief.rawMaterials ? brief.rawMaterials : '（用户暂未提供详细文本素材，请生成符合业务定位、克制真实的专业结构化占位演示内容，放入 src/data/mocks/seed.json）'}
-
-## 4. 执行步骤清单
-1. 先阅读技能说明 \`.agents/skills/astro-static-site-design/SKILL.md\`（或 \`.opencode/skill/astro-static-site-design/SKILL.md\`）及 \`.webdesign/platform-spec.json\`。
-2. 更新 \`src/data/site.config.json\`（保持 \`"dataSource": "mock"\`）、\`src/data/contracts/collections.contract.ts\` 与多语种演示数据 \`src/data/mocks/seed.json\`。
-3. 定制专属的 \`src/styles/tokens.css\`、\`src/components/*\` 与 \`src/pages/[locale]/*\` 页面，确保每页具备完整的 \`SeoHead\`、唯一 \`<h1>\`、Schema.org JSON-LD 与核心页 \`<GeoAnswer>\`。
-4. 调用 \`webdesign_audit_seo_geo\` 与 \`webdesign_validate_cms_contract\` 自检无误，并运行 \`npm run build\`（若尚未安装依赖先执行 \`npm install\`）确认构建零报错。
-`;
-}
-
-export function generateStage2TaskMarkdown(brief, validationResult, cmsOrigin, extraInstruction = '') {
-  return `# 阶段二任务单：CMS 集合字段建模与前后台自动对接
-
-- **站点标识 (siteKey)**：\`${brief.siteKey}\`（CMS 集合命名空间前缀：\`${validationResult.namespace}_*\`）
-- **目标 CMS 地址**：\`${cmsOrigin || '当前 Deploy 已登录的活跃 CMS'}\`
-- **启用语种**：${(brief.locales || ['en-US']).join(', ')}
-
-${extraInstruction ? `## 补充对接说明\n${extraInstruction}\n` : ''}
-## 1. 已通过合规校验的集合契约（详见 \`.webdesign/cms-contract.json\`）
-${validationResult.collections
-  .map(
-    (c) =>
-      `- **${c.name}** → 集合 \`${c.slug}\` | 模型 \`${c.modelSlug}\` (${
-        c.reuseGlobalModel ? '复用全局标准模型' : '站点专属模型'
-      }) | 分组 \`${c.groupPath}\` | 权限 \`${c.apiMode}\``
-  )
-  .join('\n')}
-
-## 2. 执行步骤清单
-1. 先阅读技能说明 \`.agents/skills/astro-cms-wiring/SKILL.md\`（或 \`.opencode/skill/astro-cms-wiring/SKILL.md\`）。
-2. 调用 \`cmsmcp\` 的 \`cms_whoami\` 确认连接正常。
-3. 按已确认的任务单（传 \`confirm=true\`）依次调用：
-   - \`cms_nav_group_ensure\`（创建 \`${validationResult.namespace}/*\` 导航分组）
-   - \`cms_models_ensure\`（仅补齐线上缺失的模型，严禁覆盖已有公共模型）
-   - \`cms_collections_ensure\`（创建 \`${validationResult.namespace}_*\` 集合并配置公开只读 / 询盘 \`submit_only\` 策略）
-   - \`cms_entity_save\`（将 \`src/data/mocks/seed.json\` 中的多语种静态演示数据批量写入对应集合作为初始内容）
-   - \`cms_frontend_site_upsert\`（登记前端站点域名与 \`/api/revalidate\` 刷新配置）
-4. 对齐 \`src/data/loaders/site-loader.ts\`，并将 \`src/data/site.config.json\` 的 \`"dataSource"\` 切换为 \`"cms"\`（保持前端视觉组件不变）。
-5. 运行 \`npm run build\` 验证构建产物 \`dist/_worker.js\` 正常生成，并汇报创建的集合列表与导入条数。
+## 2. 推荐对话协作流
+1. **边聊边改构建全静态站**：保持 \`src/data/site.config.json\` 中 \`"dataSource": "mock"\`。将多语种演示数据写入 \`seed/*.json\`（配图放 \`seed/media/\`），修改 \`src/styles/tokens.css\`、\`src/components/*\` 与 \`src/pages/[locale]/*\`，可启动 \`npm run dev\` 供用户实时预览，并用 \`webdesign_audit_seo_geo\` 自检。
+2. **满意后对接 CMS / CRM**：先运行 \`webdesign_validate_cms_contract\` 校验 \`src/data/contracts/collections.contract.ts\`，再调用 \`cmsmcp\` 创建 \`${ns}_*\` 集合，接着调用 \`deploy_inject_seed\` 一键将 \`seed/\` 数据与图片灌入 CMS，并将 \`dataSource\` 切换为 \`"cms"\`。如需挂载 CRM，可通过 \`deploy_get_context\` / \`crmmcp\` 读取 CRM 地址并写入 \`customHeadScript\`。
+3. **一键部署上线**：调用 \`deploy_publish_site\` 自动完成 \`astro build\`、Cloudflare Workers Static Assets 上传、自定义域名绑定、48h 边缘 HTML 缓存配置与 CMS \`FrontendSite\` 注册。
 `;
 }

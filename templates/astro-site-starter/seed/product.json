@@ -1,0 +1,95 @@
+{
+  "collectionSlug": "b2b_product",
+  "items": [
+    {
+      "languageGroupKey": "site0000-prod-4000-8000-000000000001",
+      "locales": {
+        "en-US": {
+          "status": "published",
+          "sort_order": 1,
+          "slug": "optiscan-pro-x1",
+          "title": "OptiScan Pro X1 Inline AOI System",
+          "sku": "PT-AOI-X1",
+          "category_label": "Optical Inspection",
+          "summary": "High-speed 3D automated optical inspection module engineered for high-density PCB and semiconductor packaging lines.",
+          "short_answer": "OptiScan Pro X1 is an inline 3D AOI system delivering 0.5-micron height resolution and up to 65 sq.cm/sec inspection speed for SMT production lines.",
+          "cover": "",
+          "content": "Designed for zero-defect electronics manufacturing, the OptiScan Pro X1 combines multi-phase structured light projection with telecentric optics to eliminate shadow blind spots on dense assemblies.",
+          "spec_data": [
+            { "label": "FOV Resolution", "value": "5.0 um / 10.0 um configurable" },
+            { "label": "Inspection Speed", "value": "Up to 65 cm2/sec" },
+            { "label": "Max Board Size", "value": "510 mm x 460 mm" },
+            { "label": "Communication Protocol", "value": "IPC-CFX / Hermes / SECS-GEM" }
+          ],
+          "seo_title": "OptiScan Pro X1 Inline 3D AOI System | PrecisionTech",
+          "seo_description": "Sub-micron inline 3D automated optical inspection system with IPC-CFX integration for high-density electronics manufacturing."
+        },
+        "zh-CN": {
+          "status": "published",
+          "sort_order": 1,
+          "slug": "optiscan-pro-x1",
+          "title": "OptiScan Pro X1 在线式 3D AOI 光学检测系统",
+          "sku": "PT-AOI-X1",
+          "category_label": "光学检测设备",
+          "summary": "面向高密度电路板与先进封装产线的高速三维自动光学检测模组，兼顾亚微米高度复原与高直通率。",
+          "short_answer": "OptiScan Pro X1 是一款在线 3D AOI 检测系统，具备 0.5 微米高度解析度与每秒 65 平方厘米的检测速度，支持 IPC-CFX 协议。",
+          "cover": "",
+          "content": "针对高可靠性电子制造场景设计，采用多相位结构光投影与远心光学镜头组合，消除高元件遮挡阴影盲区。",
+          "spec_data": [
+            { "label": "光学分辨率", "value": "5.0 um / 10.0 um 可选" },
+            { "label": "检测速度", "value": "最高 65 cm2/s" },
+            { "label": "最大基板尺寸", "value": "510 mm x 460 mm" },
+            { "label": "工业总线协议", "value": "IPC-CFX / Hermes / SECS-GEM" }
+          ],
+          "seo_title": "OptiScan Pro X1 在线 3D AOI 检测系统 | 精工智测",
+          "seo_description": "高密度贴装与先进封装在线式三维自动光学检测系统，支持 IPC-CFX 智能工厂互联。"
+        }
+      }
+    },
+    {
+      "languageGroupKey": "site0000-prod-4000-8000-000000000002",
+      "locales": {
+        "en-US": {
+          "status": "published",
+          "sort_order": 2,
+          "slug": "microlink-servo-stage",
+          "title": "MicroLink Linear Motor Motion Stage",
+          "sku": "PT-STG-400",
+          "category_label": "Precision Motion",
+          "summary": "Ironless direct-drive linear stage offering ultra-low velocity ripple for laser micromachining and wafer metrology.",
+          "short_answer": "MicroLink PT-STG-400 is a direct-drive linear motor stage featuring +/-0.4 um bidirectional repeatability and ironless zero-cogging dynamics.",
+          "cover": "",
+          "content": "Built on a stress-relieved granite or hard-anodized aluminum base, MicroLink stages integrate optical linear encoders for maintenance-free 24/7 cleanroom operation.",
+          "spec_data": [
+            { "label": "Travel Range", "value": "200 mm to 600 mm" },
+            { "label": "Repeatability", "value": "+/- 0.4 um" },
+            { "label": "Max Velocity", "value": "1,500 mm/s" },
+            { "label": "Cleanroom Rating", "value": "ISO Class 5 Ready" }
+          ],
+          "seo_title": "MicroLink Direct-Drive Linear Stage | PrecisionTech",
+          "seo_description": "Zero-cogging linear motor positioning stage engineered for wafer metrology, photonics alignment, and laser processing."
+        },
+        "zh-CN": {
+          "status": "published",
+          "sort_order": 2,
+          "slug": "microlink-servo-stage",
+          "title": "MicroLink 无铁芯直驱直线电机精密平台",
+          "sku": "PT-STG-400",
+          "category_label": "精密运动控制",
+          "summary": "零齿槽效应直驱运动平台，适用于晶圆量测、光子耦合对准与精密激光微加工。",
+          "short_answer": "MicroLink PT-STG-400 采用无铁芯直驱电机与高分辨率光栅尺，实现 +/-0.4 微米双向重复定位精度，满足洁净室全天候运行。",
+          "cover": "",
+          "content": "平台底座采用航空硬质阳极氧化铝或天然花岗岩结构，具备极低的速度波动率与免维护高寿命表现。",
+          "spec_data": [
+            { "label": "有效行程", "value": "200 mm - 600 mm" },
+            { "label": "双向重复精度", "value": "+/- 0.4 um" },
+            { "label": "最大运行速度", "value": "1,500 mm/s" },
+            { "label": "洁净室等级", "value": "兼容 ISO Class 5" }
+          ],
+          "seo_title": "MicroLink 精密直驱直线电机平台 | 精工智测",
+          "seo_description": "面向半导体量测与激光微加工的零齿槽效应直驱运动平台，双向重复定位精度达 0.4 微米。"
+        }
+      }
+    }
+  ]
+}
