@@ -3,6 +3,7 @@
   "displayName": "PrecisionTech Solutions",
   "siteOrigin": "http://127.0.0.1:4321",
   "dataSource": "mock",
+  "theme": "corporate",
   "defaultLocale": "en-US",
   "locales": ["en-US", "zh-CN"],
   "brand": {

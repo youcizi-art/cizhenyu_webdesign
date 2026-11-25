@@ -57,34 +57,31 @@ const jsonLdNodes = [
   company={company}
   jsonLdNodes={jsonLdNodes}
 >
-  <section class="section-block">
-    <div class="container">
-      {product.sku ? <span class="eyebrow">SKU: {product.sku}</span> : null}
-      <h1 class="hero-title" style="font-size: 2.5rem;">{product.title}</h1>
-      <p class="hero-desc">{product.summary}</p>
-
+  <section class="max-w-5xl mx-auto px-4 sm:px-6 py-14 space-y-10">
+    <div>
+      {product.sku ? <div class="badge badge-outline badge-primary mb-3">SKU: {product.sku}</div> : null}
+      <h1 class="text-3xl sm:text-4xl font-bold tracking-tight">{product.title}</h1>
+      <p class="mt-4 text-lg text-base-content/75 leading-relaxed">{product.summary}</p>
       <GeoAnswer
         label={isZh ? '核心规格摘要' : 'Technical Summary'}
         answer={product.short_answer || product.summary}
       />
-
-      {product.content ? (
-        <div class="card" style="margin: 28px 0;">
-          <h2 class="section-subtitle">{isZh ? '方案与架构说明' : 'Engineering Overview'}</h2>
-          <p style="margin: 0; color: var(--text-secondary);">{product.content}</p>
-        </div>
-      ) : null}
-
-      <div style="margin: 32px 0;">
-        <SpecTable
-          title={isZh ? '关键技术参数表' : 'Technical Specifications'}
-          specs={product.spec_data}
-        />
-      </div>
-
-      <div style="margin-top: 44px;">
-        <InquiryForm locale={locale} defaultProduct={product.title} />
-      </div>
     </div>
+
+    {product.content ? (
+      <div class="card bg-base-100 border border-base-200">
+        <div class="card-body prose prose-slate max-w-none">
+          <h2>{isZh ? '方案与架构说明' : 'Engineering Overview'}</h2>
+          <p>{product.content}</p>
+        </div>
+      </div>
+    ) : null}
+
+    <SpecTable
+      title={isZh ? '关键技术参数表' : 'Technical Specifications'}
+      specs={product.spec_data}
+    />
+
+    <InquiryForm locale={locale} defaultProduct={product.title} />
   </section>
 </BaseLayout>

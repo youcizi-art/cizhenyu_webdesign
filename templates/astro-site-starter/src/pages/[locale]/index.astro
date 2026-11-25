@@ -1,4 +1,5 @@
 ---
+import { ArrowRight, BookOpen, Cpu } from '@lucide/astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import GeoAnswer from '@/core/geo/GeoAnswer.astro';
 import { getSiteOrigin } from '@/core/cms/runtime-env';
@@ -32,29 +33,40 @@ if (faqs.length > 0) {
   company={company}
   jsonLdNodes={jsonLdNodes}
 >
-  <section class="hero-section">
-    <div class="container">
-      <span class="eyebrow">{isZh ? '工业级精密工程与 OEM 制造' : 'Industrial OEM & Precision Engineering'}</span>
-      <h1 class="hero-title">{company.slogan}</h1>
-      <p class="hero-desc">{company.summary}</p>
-      <div class="btn-row">
-        <a class="btn-primary" href={buildLocalizedPath(locale, '/products')}>
-          {isZh ? '浏览产品目录' : 'Explore Products'}
+  <section class="border-b border-base-200 bg-base-100">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+      <div class="badge badge-primary badge-outline gap-1.5 mb-4 py-3 px-3">
+        <Cpu class="size-3.5" />
+        <span>{isZh ? '工业级精密工程与 OEM 制造' : 'Industrial OEM & Precision Engineering'}</span>
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-bold tracking-tight max-w-4xl leading-tight">
+        {company.slogan}
+      </h1>
+      <p class="mt-5 text-lg text-base-content/75 max-w-2xl leading-relaxed">
+        {company.summary}
+      </p>
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a class="btn btn-primary gap-2" href={buildLocalizedPath(locale, '/products')}>
+          <span>{isZh ? '浏览产品目录' : 'Explore Products'}</span>
+          <ArrowRight class="size-4" />
         </a>
-        <a class="btn-secondary" href={buildLocalizedPath(locale, '/contact')}>
+        <a class="btn btn-outline" href={buildLocalizedPath(locale, '/contact')}>
           {isZh ? '获取工程评估方案' : 'Request Engineering Consultation'}
         </a>
       </div>
+
       <GeoAnswer
         label={isZh ? '核心能力概览' : 'Executive Summary'}
         answer={company.short_answer}
       />
+
       {company.highlights?.length ? (
-        <div class="metrics-bar">
+        <div class="stats stats-vertical sm:stats-horizontal shadow-xs border border-base-200 w-full mt-10 bg-base-100">
           {company.highlights.map((h) => (
-            <div class="metric-card">
-              <div class="metric-value">{h.metric}</div>
-              <div class="metric-label">{h.label}</div>
+            <div class="stat">
+              <div class="stat-value text-primary text-2xl sm:text-3xl">{h.metric}</div>
+              <div class="stat-desc text-sm text-base-content/70 mt-1">{h.label}</div>
             </div>
           ))}
         </div>
@@ -62,18 +74,27 @@ if (faqs.length > 0) {
     </div>
   </section>
 
-  <section class="section-block" style="background: var(--bg-muted);">
-    <div class="container">
-      <h2 class="section-title">{isZh ? '核心产品系列' : 'Flagship Equipment & Modules'}</h2>
-      <div class="card-grid">
+  <section class="bg-base-200/40 py-16">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-8">
+        {isZh ? '核心产品系列' : 'Flagship Equipment & Modules'}
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {products.map((p) => (
-          <article class="card">
-            {p.category_label ? <div class="card-tag">{p.category_label}</div> : null}
-            <h3 class="card-title">{p.title}</h3>
-            <p class="card-summary">{p.summary}</p>
-            <a class="btn-secondary" href={buildLocalizedPath(locale, `/products/${p.slug}`)}>
-              {isZh ? '查看技术规格' : 'View Specifications'}
-            </a>
+          <article class="card bg-base-100 border border-base-200 shadow-xs hover:shadow-md transition-shadow">
+            <div class="card-body">
+              {p.category_label ? (
+                <div class="badge badge-soft badge-primary badge-sm">{p.category_label}</div>
+              ) : null}
+              <h3 class="card-title text-xl mt-1">{p.title}</h3>
+              <p class="text-sm text-base-content/75 leading-relaxed">{p.summary}</p>
+              <div class="card-actions justify-start mt-4">
+                <a class="btn btn-sm btn-outline gap-1.5" href={buildLocalizedPath(locale, `/products/${p.slug}`)}>
+                  <span>{isZh ? '查看技术规格' : 'View Specifications'}</span>
+                  <ArrowRight class="size-3.5" />
+                </a>
+              </div>
+            </div>
           </article>
         ))}
       </div>
@@ -81,18 +102,28 @@ if (faqs.length > 0) {
   </section>
 
   {articles.length > 0 ? (
-    <section class="section-block">
-      <div class="container">
-        <h2 class="section-title">{isZh ? '工程选型与应用指南' : 'Application Notes & Guides'}</h2>
-        <div class="card-grid">
+    <section class="py-16">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6">
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-8">
+          {isZh ? '工程选型与应用指南' : 'Application Notes & Guides'}
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           {articles.map((a) => (
-            <article class="card">
-              <div class="card-tag">{a.author || 'Engineering'}</div>
-              <h3 class="card-title">{a.title}</h3>
-              <p class="card-summary">{a.summary}</p>
-              <a class="btn-secondary" href={buildLocalizedPath(locale, `/articles/${a.slug}`)}>
-                {isZh ? '阅读全文' : 'Read Guide'}
-              </a>
+            <article class="card bg-base-100 border border-base-200 shadow-xs">
+              <div class="card-body">
+                <div class="inline-flex items-center gap-1.5 text-xs font-medium text-base-content/60">
+                  <BookOpen class="size-3.5" />
+                  <span>{a.author || 'Engineering'}</span>
+                </div>
+                <h3 class="card-title text-lg mt-1">{a.title}</h3>
+                <p class="text-sm text-base-content/75 leading-relaxed">{a.summary}</p>
+                <div class="card-actions justify-start mt-4">
+                  <a class="btn btn-sm btn-ghost text-primary gap-1" href={buildLocalizedPath(locale, `/articles/${a.slug}`)}>
+                    <span>{isZh ? '阅读全文' : 'Read Guide'}</span>
+                    <ArrowRight class="size-3.5" />
+                  </a>
+                </div>
+              </div>
             </article>
           ))}
         </div>
@@ -101,14 +132,19 @@ if (faqs.length > 0) {
   ) : null}
 
   {faqs.length > 0 ? (
-    <section class="section-block" style="background: var(--bg-muted);">
-      <div class="container">
-        <h2 class="section-title">{isZh ? '常见问题解答' : 'Frequently Asked Questions'}</h2>
-        <div class="card-grid">
-          {faqs.map((f) => (
-            <div class="card">
-              <h3 class="card-title" style="font-size: 1.08rem;">{f.question}</h3>
-              <p class="card-summary" style="margin-bottom: 0;">{f.answer}</p>
+    <section class="bg-base-200/40 py-16">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-8">
+          {isZh ? '常见问题解答' : 'Frequently Asked Questions'}
+        </h2>
+        <div class="space-y-3">
+          {faqs.map((f, idx) => (
+            <div class="collapse collapse-arrow bg-base-100 border border-base-200">
+              <input type="radio" name="home-faq" checked={idx === 0} />
+              <div class="collapse-title font-semibold text-base">{f.question}</div>
+              <div class="collapse-content text-sm text-base-content/75 leading-relaxed">
+                <p>{f.answer}</p>
+              </div>
             </div>
           ))}
         </div>

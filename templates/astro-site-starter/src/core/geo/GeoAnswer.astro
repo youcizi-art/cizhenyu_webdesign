@@ -2,6 +2,8 @@
 /**
  * GEO（生成式引擎优化）语义简答组件：在核心业务页面输出直接、可核验的事实摘要，便于 AI 搜索引擎引用。
  */
+import { Sparkles } from '@lucide/astro';
+
 interface Props {
   label?: string;
   answer?: string;
@@ -11,8 +13,15 @@ const { label = 'Key Takeaway', answer = '' } = Astro.props;
 const text = String(answer || '').trim();
 ---
 {text ? (
-  <aside class="geo-answer" data-geo-answer="true" aria-label={label}>
-    <div class="geo-answer-badge">{label}</div>
-    <p class="geo-answer-text">{text}</p>
+  <aside
+    class="mt-8 rounded-r-xl border border-base-200 border-l-4 border-l-primary bg-primary/5 p-5"
+    data-geo-answer="true"
+    aria-label={label}
+  >
+    <div class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary mb-1.5">
+      <Sparkles class="size-3.5" />
+      <span>{label}</span>
+    </div>
+    <p class="text-sm sm:text-base leading-relaxed text-base-content/90">{text}</p>
   </aside>
 ) : null}

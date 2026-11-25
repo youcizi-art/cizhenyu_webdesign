@@ -4,7 +4,7 @@ import SiteHeader from '@/components/SiteHeader.astro';
 import SiteFooter from '@/components/SiteFooter.astro';
 import { getSiteConfig } from '@/core/cms/runtime-env';
 import type { CompanyProfile } from '@/data/loaders/site-loader';
-import '@/styles/tokens.css';
+import '@/styles/global.css';
 
 interface Props {
   title: string;
@@ -30,13 +30,13 @@ const {
   jsonLdNodes = [],
 } = Astro.props;
 
-const siteCfg = getSiteConfig();
-const primaryColor = siteCfg.brand?.primaryColor || '#2563eb';
-const accentColor = siteCfg.brand?.accentColor || '#0ea5e9';
+const siteCfg = getSiteConfig() as Record<string, unknown>;
+const daisyTheme = String(siteCfg.theme || 'corporate');
+const customHeadScript = String(siteCfg.customHeadScript || '').trim();
 const canonicalPath = restPath === '/' ? `/${locale}` : `/${locale}${restPath}`;
 ---
 <!DOCTYPE html>
-<html lang={locale} style={`--brand-primary: ${primaryColor}; --brand-accent: ${accentColor};`}>
+<html lang={locale} data-theme={daisyTheme}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -52,11 +52,11 @@ const canonicalPath = restPath === '/' ? `/${locale}` : `/${locale}${restPath}`;
       robots={robots}
       jsonLdNodes={jsonLdNodes}
     />
-    {siteCfg.customHeadScript ? <Fragment set:html={siteCfg.customHeadScript} /> : null}
+    {customHeadScript ? <Fragment set:html={customHeadScript} /> : null}
   </head>
-  <body>
+  <body class="min-h-screen flex flex-col bg-base-100 text-base-content antialiased">
     <SiteHeader locale={locale} restPath={restPath} companyName={company.name} />
-    <main>
+    <main class="flex-1">
       <slot />
     </main>
     <SiteFooter locale={locale} company={company} />

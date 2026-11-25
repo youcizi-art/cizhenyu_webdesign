@@ -16,17 +16,19 @@ const { title = 'Specifications', specs = [] } = Astro.props;
 const validRows = specs.filter((row) => row.label && row.value);
 ---
 {validRows.length > 0 ? (
-  <section class="spec-table-section" data-geo-specs="true">
-    <h2 class="section-subtitle">{title}</h2>
-    <div class="spec-table-wrap">
-      <dl class="spec-grid">
-        {validRows.map((row) => (
-          <div class="spec-row">
-            <dt class="spec-label">{row.label}</dt>
-            <dd class="spec-value">{row.value}</dd>
-          </div>
-        ))}
-      </dl>
+  <section class="space-y-4" data-geo-specs="true">
+    <h2 class="text-xl font-bold tracking-tight">{title}</h2>
+    <div class="overflow-x-auto rounded-box border border-base-200 bg-base-100">
+      <table class="table table-zebra">
+        <tbody>
+          {validRows.map((row) => (
+            <tr>
+              <th class="w-1/3 font-medium text-base-content/75 bg-base-200/40">{row.label}</th>
+              <td class="text-base-content">{row.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   </section>
 ) : null}

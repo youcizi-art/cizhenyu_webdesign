@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* 预置常用商业级 DaisyUI v5 主题；Agent 可按行业切换 data-theme 或定制 @plugin "daisyui/theme" */
+@plugin "daisyui" {
+  themes: corporate --default, business --prefersdark, light, nord, lofi, emerald, luxury, dim;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", sans-serif;
+  }
+}

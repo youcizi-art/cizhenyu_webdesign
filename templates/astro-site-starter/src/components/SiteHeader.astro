@@ -1,4 +1,5 @@
 ---
+import { Globe, Layers } from '@lucide/astro';
 import { buildLocalizedPath, getSupportedLocales } from '@/core/i18n/locale';
 import { loadNavItems } from '@/data/loaders/site-loader';
 
@@ -12,29 +13,44 @@ const { locale, restPath = '/', companyName } = Astro.props;
 const navItems = loadNavItems(locale);
 const locales = getSupportedLocales();
 ---
-<header class="site-header">
-  <div class="container header-inner">
-    <a class="brand-mark" href={buildLocalizedPath(locale, '/')}>
-      <span class="brand-dot" aria-hidden="true"></span>
-      <span>{companyName}</span>
-    </a>
-    <nav class="nav-links" aria-label="Main navigation">
-      {navItems.map((item) => (
-        <a href={item.href}>{item.label}</a>
-      ))}
-    </nav>
-    {locales.length > 1 ? (
-      <div class="locale-pills" aria-label="Language switcher">
-        {locales.map((code) => (
-          <a
-            class="locale-pill"
-            href={buildLocalizedPath(code, restPath)}
-            data-active={code === locale ? 'true' : 'false'}
-          >
-            {code}
-          </a>
+<header class="sticky top-0 z-40 border-b border-base-200 bg-base-100/90 backdrop-blur">
+  <div class="navbar max-w-6xl mx-auto px-4 sm:px-6">
+    <div class="navbar-start">
+      <a
+        class="inline-flex items-center gap-2.5 font-semibold text-base tracking-tight text-base-content hover:text-primary transition-colors"
+        href={buildLocalizedPath(locale, '/')}
+      >
+        <span class="inline-flex items-center justify-center size-8 rounded-lg bg-primary text-primary-content">
+          <Layers class="size-4" />
+        </span>
+        <span>{companyName}</span>
+      </a>
+    </div>
+
+    <nav class="navbar-center hidden md:flex" aria-label="Main navigation">
+      <ul class="menu menu-horizontal gap-1 px-1 text-sm font-medium">
+        {navItems.map((item) => (
+          <li>
+            <a class="rounded-lg hover:bg-base-200" href={item.href}>{item.label}</a>
+          </li>
         ))}
-      </div>
-    ) : null}
+      </ul>
+    </nav>
+
+    <div class="navbar-end gap-2">
+      {locales.length > 1 ? (
+        <div class="inline-flex items-center gap-1 rounded-lg bg-base-200/70 p-1" aria-label="Language switcher">
+          <Globe class="size-3.5 text-base-content/60 ml-1.5 mr-0.5 hidden sm:block" />
+          {locales.map((code) => (
+            <a
+              class={`btn btn-xs ${code === locale ? 'btn-primary' : 'btn-ghost'}`}
+              href={buildLocalizedPath(code, restPath)}
+            >
+              {code}
+            </a>
+          ))}
+        </div>
+      ) : null}
+    </div>
   </div>
 </header>

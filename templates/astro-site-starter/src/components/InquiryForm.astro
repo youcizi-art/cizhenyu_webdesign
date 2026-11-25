@@ -1,4 +1,6 @@
 ---
+import { Send } from '@lucide/astro';
+
 interface Props {
   locale: string;
   defaultProduct?: string;
@@ -7,36 +9,51 @@ interface Props {
 const { locale, defaultProduct = '' } = Astro.props;
 const isZh = locale.toLowerCase().startsWith('zh');
 ---
-<form id="site-inquiry-form" class="card" data-locale={locale}>
-  <h2 class="section-subtitle">{isZh ? '发送项目询盘' : 'Request Engineering Quote'}</h2>
-  <div class="form-grid">
-    <div class="field-group">
-      <label for="inq-name">{isZh ? '您的姓名 *' : 'Full Name *'}</label>
-      <input id="inq-name" name="contact_name" class="field-input" required maxlength="80" />
+<form
+  id="site-inquiry-form"
+  class="card bg-base-100 border border-base-200 shadow-sm"
+  data-locale={locale}
+>
+  <div class="card-body gap-5">
+    <h2 class="card-title text-xl">{isZh ? '发送项目询盘' : 'Request Engineering Quote'}</h2>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <label class="form-control w-full">
+        <span class="label-text text-sm font-medium mb-1.5">{isZh ? '您的姓名 *' : 'Full Name *'}</span>
+        <input id="inq-name" name="contact_name" class="input input-bordered w-full" required maxlength="80" />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text text-sm font-medium mb-1.5">{isZh ? '商务邮箱 *' : 'Business Email *'}</span>
+        <input id="inq-email" name="email" type="email" class="input input-bordered w-full" required maxlength="120" />
+      </label>
     </div>
-    <div class="field-group">
-      <label for="inq-email">{isZh ? '商务邮箱 *' : 'Business Email *'}</label>
-      <input id="inq-email" name="email" type="email" class="field-input" required maxlength="120" />
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <label class="form-control w-full">
+        <span class="label-text text-sm font-medium mb-1.5">{isZh ? '公司名称' : 'Company Name'}</span>
+        <input id="inq-company" name="company" class="input input-bordered w-full" maxlength="120" />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text text-sm font-medium mb-1.5">{isZh ? '意向产品/方案' : 'Product of Interest'}</span>
+        <input id="inq-product" name="product_interest" class="input input-bordered w-full" value={defaultProduct} maxlength="120" />
+      </label>
+    </div>
+
+    <label class="form-control w-full">
+      <span class="label-text text-sm font-medium mb-1.5">
+        {isZh ? '具体技术参数或采购需求 *' : 'Project Specifications & Volume *'}
+      </span>
+      <textarea id="inq-message" name="message" class="textarea textarea-bordered w-full" rows="4" required maxlength="2000"></textarea>
+    </label>
+
+    <div class="flex items-center gap-4">
+      <button type="submit" class="btn btn-primary gap-2">
+        <Send class="size-4" />
+        <span>{isZh ? '提交询盘' : 'Submit Inquiry'}</span>
+      </button>
+      <p id="inq-feedback" class="text-sm text-primary" aria-live="polite"></p>
     </div>
   </div>
-  <div class="form-grid">
-    <div class="field-group">
-      <label for="inq-company">{isZh ? '公司名称' : 'Company Name'}</label>
-      <input id="inq-company" name="company" class="field-input" maxlength="120" />
-    </div>
-    <div class="field-group">
-      <label for="inq-product">{isZh ? '意向产品/方案' : 'Product of Interest'}</label>
-      <input id="inq-product" name="product_interest" class="field-input" value={defaultProduct} maxlength="120" />
-    </div>
-  </div>
-  <div class="field-group">
-    <label for="inq-message">{isZh ? '具体技术参数或采购需求 *' : 'Project Specifications & Volume *'}</label>
-    <textarea id="inq-message" name="message" class="field-textarea" rows="4" required maxlength="2000"></textarea>
-  </div>
-  <button type="submit" class="btn-primary">
-    {isZh ? '提交询盘' : 'Submit Inquiry'}
-  </button>
-  <p id="inq-feedback" style="margin-top: 12px; font-size: 0.9rem; color: var(--brand-primary);" aria-live="polite"></p>
 </form>
 
 <script is:inline>

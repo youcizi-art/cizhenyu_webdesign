@@ -152,11 +152,11 @@ export function generateSiteAgentsMd(siteKey, displayName) {
   const ns = siteKey.replace(/-/g, '_');
   return `# ${displayName || siteKey} — Astro v7 单站开发与全链路交付指南
 
-本工作区是由 **WebDesign Studio** 初始化的独立 **Astro v7 (\`^7.4.12\`) + \`@astrojs/cloudflare\` v14** 前端站点工程（站点目录标识：\`${siteKey}\`，CMS 集合命名空间：\`${ns}_*\`）。
+本工作区是由 **WebDesign Studio** 初始化的独立 **Astro v7 (\`^7.4.12\`) + Tailwind CSS v4 + DaisyUI v5 + Lucide 图标 + \`@astrojs/cloudflare\` v14** 前端站点工程（站点目录标识：\`${siteKey}\`，CMS 集合命名空间：\`${ns}_*\`）。
 
 ## 1. 已注入项目的三大核心 Skills（动手前必读）
 请在 \`.agents/skills/\`（或 \`.opencode/skill/\`）下按当前任务阶段查阅对应规范：
-1. **\`astro-frontend-design\`**：高审美前端视觉设计、CSS 变量定制、响应式版式与 \`seed/\` 静态期数据规范。
+1. **\`astro-frontend-design\`**：Tailwind v4 + DaisyUI v5 主题色板定制、\`prose\` 富文本排版、\`@lucide/astro\` 矢量图标规范与 \`seed/\` 静态期数据规范。
 2. **\`seo-geo-optimization\`**：预置 \`SeoHead\`、唯一 \`<h1>\`、Schema.org JSON-LD、\`/llms.txt\`、\`<GeoAnswer />\` 与 48h 边缘缓存标准。
 3. **\`cms-crm-deploy-workflow\`**：\`cizhenyu_payload\` 三层字段铁律、\`cmsmcp\` 幂等建表、\`crmmcp\` / CRM 挂件接入、\`deploy_inject_seed\` 数据上云与 \`deploy_publish_site\` 边缘部署流程。
 

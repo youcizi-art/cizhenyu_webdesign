@@ -14,7 +14,12 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.9",
-    "astro": "^7.4.12"
+    "@lucide/astro": "^1.80.0",
+    "@tailwindcss/typography": "^0.5.20",
+    "@tailwindcss/vite": "^4.3.5",
+    "astro": "^7.4.12",
+    "daisyui": "^5.8.2",
+    "tailwindcss": "^4.3.5"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",

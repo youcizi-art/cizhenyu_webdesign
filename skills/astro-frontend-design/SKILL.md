@@ -1,26 +1,28 @@
 ---
 name: astro-frontend-design
-description: Astro v7 单站前端视觉设计、组件架构与边聊边改规范。在创建或修改前端页面、样式、版式与演示内容时使用。
+description: Astro v7 + Tailwind CSS v4 + DaisyUI v5 + Lucide 图标单站前端视觉设计与边聊边改规范。在创建或修改前端页面、主题配色、版式与演示内容时使用。
 ---
 
-# Astro v7 单站前端设计与交互规范
+# Astro v7 + DaisyUI v5 前端视觉设计与交互规范
 
-当前工作区是由 **WebDesign Studio** 初始化的独立 **Astro v7 (`^7.4.12`) + `@astrojs/cloudflare` v14** 前端站点工程。用户会直接在对话框中描述设计风格、发参考网站或提供业务资料，请与用户边聊边改，快速迭代。
+当前工作区是由 **WebDesign Studio** 初始化的独立 **Astro v7 (`^7.4.12`) + `@astrojs/cloudflare` v14** 前端站点工程，已预装商业级设计体系：
+- **Tailwind CSS v4 (`@tailwindcss/vite`)**
+- **DaisyUI v5（MIT 开源免费语义组件与主题引擎）**
+- **`@tailwindcss/typography`（`prose` 富文本出版级排版）**
+- **`@lucide/astro`（1500+ 套统一线条矢量图标，官方支持 Astro v7，编译期直出内联 SVG）**
 
-## 1. 本地实时预览与开发循环
-- 如需让用户边聊边看效果，可在项目根目录启动本地开发服：`npm run dev`（默认监听 `http://127.0.0.1:4321`）。
-- 每次修改完关键版式后，运行 `npx astro check` 确保零 TypeScript / 模板语法错误。
+## 1. 先定主题，禁止手写散装 CSS
+- **全局样式入口**：`src/styles/global.css` 已启用 Tailwind v4、Typography 与 DaisyUI v5 多套内置主题（`corporate`、`business`、`light`、`nord`、`lofi`、`emerald`、`luxury`、`dim`）。
+- **快速切换行业气质**：在 `src/data/site.config.json` 修改 `"theme": "corporate"`（例如医疗/SaaS 用 `nord` 或 `corporate`、重工/硬件用 `business` 或 `dim`、高端品牌用 `luxury`、环保/能源用 `emerald`），`BaseLayout.astro` 会自动同步 `<html data-theme="...">`。
+- **定制品牌专属色板**：若用户给出了具体品牌主辅色，在 `src/styles/global.css` 中使用 DaisyUI v5 原生 CSS 主题块 `@plugin "daisyui/theme" { name: "brand"; default: true; --color-primary: ...; --color-secondary: ...; --color-base-100: ...; }` 统一覆盖，**不要在各个 `.astro` 页面中散落硬编码十六进制色值**。
 
-## 2. 单站架构与数据同构约定（核心）
-- **扁平单站结构**：所有视觉组件放在 `src/components/`，多语言页面放在 `src/pages/[locale]/`，设计变量集中在 `src/styles/tokens.css`。禁止引入复杂的多主题动态分发层。
-- **静态期保持 `dataSource: "mock"`**：
-  - 在前端视觉未定稿、尚未执行后台对接前，`src/data/site.config.json` 中的 `"dataSource"` 保持 `"mock"`。
-  - **统一读写根目录 `seed/`**：所有多语种文案、产品、文章、FAQ 数据统一存放在根目录 `seed/*.json`（清单见 `seed/seed.manifest.json`，本地配图放在 `seed/media/`），页面统一经 `src/data/loaders/site-loader.ts` 取数，**禁止把大段业务数据硬编码死在 `.astro` 模板中**。
-  - 这样设计的好处是：`seed/` 目录与 Deploy 原生 `deploy_inject_seed` 完全同构，静态站定稿后无需任何格式转换即可一键把多语种数据与本地图片灌入线上 CMS。
-- **参考网站抓取**：若用户在对话中给出了参考网址且当前环境已注入 `firecrawl` 工具，可先抓取参考站分析其版式节奏、留白比例与信息层级（**严禁照抄他站品牌名、Logo 或受版权保护的原话**）。
+## 2. 组件、排版与图标规范（拒绝“丑陋 AI 味”）
+- **优先使用 DaisyUI 语义组件 + Tailwind 布局**：导航栏 `navbar`、首屏 `hero`、指标卡 `stats`、内容卡片 `card`、按钮 `btn btn-primary/outline/ghost`、标签 `badge`、折叠 FAQ `collapse collapse-arrow`、规格表 `table table-zebra`、表单 `input input-bordered` / `textarea textarea-bordered`。
+- **富文本统一套 `prose`**：产品详细介绍、文章正文、关于我们等长文本区域统一加 `class="prose prose-lg max-w-none"`，确保标题层级、段落间距、列表与引用美观协调。
+- **图标统一用 `@lucide/astro`**：直接 `import { ArrowRight, ShieldCheck, Factory, Mail } from '@lucide/astro';`，渲染 `<ShieldCheck class="size-5 text-primary" />`。**严禁使用 Emoji 充当界面图标，也不要手写粗糙的 `<svg>` 路径。**
+- **克制的视觉层次与留白**：合理使用 `max-w-6xl mx-auto px-4 sm:px-6` 与 `py-16 sm:py-24` 呼吸留白；避免刺眼的高饱和紫蓝霓虹渐变与堆砌阴影；全面适配移动端响应式。
 
-## 3. 视觉审美与诚实数据标准
-- **高质感定制设计**：根据行业定位定制 `src/styles/tokens.css` 的主辅色、字体层级、圆角与阴影。避免千篇一律的紫蓝霓虹渐变与三等分套路卡片；避免使用纯黑 `#000000` 与刺眼纯白背景，采用富有层次的中性色阶。
-- **严禁 Emoji 充当 UI 图标**：导航、特性卡片、按钮图标一律使用干净统一的内联 SVG 矢量图标。
-- **响应式与交互细节**：全面适配桌面端与移动端视口，所有链接、按钮、表单均需具备清晰的 hover / focus-visible / loading 状态。
-- **数据诚实铁律**：用户提供了真实公司信息、型号参数时准确录入 `seed/*.json`；用户暂未提供的部分使用专业克制的行业演示数据，**严禁编造虚假的 ISO/CE 证书编号、虚构客户证言或虚假销量排名**。
+## 3. 边聊边改与同构 `seed/` 数据约定
+- **静态期保持 `dataSource: "mock"`**：所有多语种文案、产品、文章、FAQ 均维护在根目录 `seed/*.json`（配图放 `seed/media/`），页面统一经 `src/data/loaders/site-loader.ts` 取数，确保后续调用 `deploy_inject_seed` 可零转换一键灌入 CMS。
+- **数据诚实铁律**：用户提供真实参数时准确录入；未提供时生成克制专业的行业演示文案，**严禁捏造虚假认证编号、客户证言或销量排名**。
+- **修改后自检**：运行 `npx astro check` 确认零类型错误，并调用 `webdesign_audit_seo_geo` 验证 SEO/GEO 得分 100%。

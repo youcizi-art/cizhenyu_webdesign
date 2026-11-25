@@ -44,19 +44,15 @@ const jsonLdNodes = [
   company={company}
   jsonLdNodes={jsonLdNodes}
 >
-  <article class="section-block">
-    <div class="container" style="max-width: 860px;">
-      <span class="eyebrow">{article.author || company.name}</span>
-      <h1 class="hero-title" style="font-size: 2.3rem;">{article.title}</h1>
-      <GeoAnswer
-        label={isZh ? '核心结论' : 'Direct Answer'}
-        answer={article.short_answer || article.summary}
-      />
-      <div class="card" style="margin-top: 24px;">
-        <p style="margin: 0; color: var(--text-main); white-space: pre-line;">
-          {article.content || article.summary}
-        </p>
-      </div>
+  <article class="max-w-3xl mx-auto px-4 sm:px-6 py-14">
+    <div class="badge badge-outline badge-primary mb-3">{article.author || company.name}</div>
+    <h1 class="text-3xl sm:text-4xl font-bold tracking-tight leading-tight">{article.title}</h1>
+    <GeoAnswer
+      label={isZh ? '核心结论' : 'Direct Answer'}
+      answer={article.short_answer || article.summary}
+    />
+    <div class="prose prose-lg prose-slate max-w-none mt-8">
+      <p class="whitespace-pre-line">{article.content || article.summary}</p>
     </div>
   </article>
 </BaseLayout>
