@@ -1,0 +1,61 @@
+---
+import { buildHreflangAlternates } from '@/core/i18n/locale';
+import { getSiteOrigin } from '@/core/cms/runtime-env';
+import { toAbsoluteUrl, toOgLocale } from './schema-org';
+
+interface Props {
+  title: string;
+  description: string;
+  canonicalPath: string;
+  restPath?: string;
+  locale: string;
+  siteName: string;
+  ogImage?: string;
+  ogType?: string;
+  robots?: string;
+  jsonLdNodes?: Array<Record<string, unknown>>;
+}
+
+const {
+  title,
+  description,
+  canonicalPath,
+  restPath = '/',
+  locale,
+  siteName,
+  ogImage = '',
+  ogType = 'website',
+  robots = 'index, follow',
+  jsonLdNodes = [],
+} = Astro.props;
+
+const origin = getSiteOrigin(Astro.url.origin);
+const canonical = toAbsoluteUrl(canonicalPath, origin);
+const absImage = ogImage ? toAbsoluteUrl(ogImage, origin) : '';
+const alternates = buildHreflangAlternates(restPath);
+const ogLocale = toOgLocale(locale);
+const safeJsonLdList = jsonLdNodes.map((node) =>
+  JSON.stringify(node).replace(/</g, '\\u003c')
+);
+---
+<title>{title}</title>
+<meta name="description" content={description} />
+<meta name="robots" content={robots} />
+<link rel="canonical" href={canonical} />
+{alternates.map((alt) => (
+  <link rel="alternate" hreflang={alt.hreflang} href={toAbsoluteUrl(alt.href, origin)} />
+))}
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content={ogType} />
+<meta property="og:url" content={canonical} />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:locale" content={ogLocale} />
+{absImage ? <meta property="og:image" content={absImage} /> : null}
+<meta name="twitter:card" content={absImage ? 'summary_large_image' : 'summary'} />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+{absImage ? <meta name="twitter:image" content={absImage} /> : null}
+{safeJsonLdList.map((jsonStr) => (
+  <script is:inline type="application/ld+json" set:html={jsonStr} />
+))}

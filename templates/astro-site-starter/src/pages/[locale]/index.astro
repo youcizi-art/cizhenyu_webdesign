@@ -1,0 +1,118 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import GeoAnswer from '@/core/geo/GeoAnswer.astro';
+import { getSiteOrigin } from '@/core/cms/runtime-env';
+import { buildLocalizedPath, normalizeLocaleCode } from '@/core/i18n/locale';
+import { buildFaqJsonLd, buildOrganizationJsonLd } from '@/core/seo/schema-org';
+import { loadArticles, loadCompanyProfile, loadFaqs, loadProducts } from '@/data/loaders/site-loader';
+
+const locale = normalizeLocaleCode(Astro.params.locale);
+const isZh = locale.toLowerCase().startsWith('zh');
+const origin = getSiteOrigin(Astro.url.origin);
+
+const [company, products, articles, faqs] = await Promise.all([
+  loadCompanyProfile(locale),
+  loadProducts(locale),
+  loadArticles(locale),
+  loadFaqs(locale),
+]);
+
+const jsonLdNodes: Array<Record<string, unknown>> = [
+  buildOrganizationJsonLd(company, origin),
+];
+if (faqs.length > 0) {
+  jsonLdNodes.push(buildFaqJsonLd(faqs));
+}
+---
+<BaseLayout
+  title={`${company.name} | ${company.slogan}`}
+  description={company.summary}
+  locale={locale}
+  restPath="/"
+  company={company}
+  jsonLdNodes={jsonLdNodes}
+>
+  <section class="hero-section">
+    <div class="container">
+      <span class="eyebrow">{isZh ? '工业级精密工程与 OEM 制造' : 'Industrial OEM & Precision Engineering'}</span>
+      <h1 class="hero-title">{company.slogan}</h1>
+      <p class="hero-desc">{company.summary}</p>
+      <div class="btn-row">
+        <a class="btn-primary" href={buildLocalizedPath(locale, '/products')}>
+          {isZh ? '浏览产品目录' : 'Explore Products'}
+        </a>
+        <a class="btn-secondary" href={buildLocalizedPath(locale, '/contact')}>
+          {isZh ? '获取工程评估方案' : 'Request Engineering Consultation'}
+        </a>
+      </div>
+      <GeoAnswer
+        label={isZh ? '核心能力概览' : 'Executive Summary'}
+        answer={company.short_answer}
+      />
+      {company.highlights?.length ? (
+        <div class="metrics-bar">
+          {company.highlights.map((h) => (
+            <div class="metric-card">
+              <div class="metric-value">{h.metric}</div>
+              <div class="metric-label">{h.label}</div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  </section>
+
+  <section class="section-block" style="background: var(--bg-muted);">
+    <div class="container">
+      <h2 class="section-title">{isZh ? '核心产品系列' : 'Flagship Equipment & Modules'}</h2>
+      <div class="card-grid">
+        {products.map((p) => (
+          <article class="card">
+            {p.category_label ? <div class="card-tag">{p.category_label}</div> : null}
+            <h3 class="card-title">{p.title}</h3>
+            <p class="card-summary">{p.summary}</p>
+            <a class="btn-secondary" href={buildLocalizedPath(locale, `/products/${p.slug}`)}>
+              {isZh ? '查看技术规格' : 'View Specifications'}
+            </a>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {articles.length > 0 ? (
+    <section class="section-block">
+      <div class="container">
+        <h2 class="section-title">{isZh ? '工程选型与应用指南' : 'Application Notes & Guides'}</h2>
+        <div class="card-grid">
+          {articles.map((a) => (
+            <article class="card">
+              <div class="card-tag">{a.author || 'Engineering'}</div>
+              <h3 class="card-title">{a.title}</h3>
+              <p class="card-summary">{a.summary}</p>
+              <a class="btn-secondary" href={buildLocalizedPath(locale, `/articles/${a.slug}`)}>
+                {isZh ? '阅读全文' : 'Read Guide'}
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  ) : null}
+
+  {faqs.length > 0 ? (
+    <section class="section-block" style="background: var(--bg-muted);">
+      <div class="container">
+        <h2 class="section-title">{isZh ? '常见问题解答' : 'Frequently Asked Questions'}</h2>
+        <div class="card-grid">
+          {faqs.map((f) => (
+            <div class="card">
+              <h3 class="card-title" style="font-size: 1.08rem;">{f.question}</h3>
+              <p class="card-summary" style="margin-bottom: 0;">{f.answer}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  ) : null}
+</BaseLayout>

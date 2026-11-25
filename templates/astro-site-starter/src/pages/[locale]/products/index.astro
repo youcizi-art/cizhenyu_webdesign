@@ -1,0 +1,53 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getSiteOrigin } from '@/core/cms/runtime-env';
+import { buildLocalizedPath, normalizeLocaleCode } from '@/core/i18n/locale';
+import { buildBreadcrumbJsonLd } from '@/core/seo/schema-org';
+import { loadCompanyProfile, loadProducts } from '@/data/loaders/site-loader';
+
+const locale = normalizeLocaleCode(Astro.params.locale);
+const isZh = locale.toLowerCase().startsWith('zh');
+const origin = getSiteOrigin(Astro.url.origin);
+
+const [company, products] = await Promise.all([
+  loadCompanyProfile(locale),
+  loadProducts(locale),
+]);
+
+const crumbs = buildBreadcrumbJsonLd(
+  [
+    { name: isZh ? '首页' : 'Home', href: buildLocalizedPath(locale, '/') },
+    { name: isZh ? '产品中心' : 'Products', href: buildLocalizedPath(locale, '/products') },
+  ],
+  origin
+);
+---
+<BaseLayout
+  title={`${isZh ? '产品中心' : 'Product Catalog'} | ${company.name}`}
+  description={company.summary}
+  locale={locale}
+  restPath="/products"
+  company={company}
+  jsonLdNodes={[crumbs]}
+>
+  <section class="section-block">
+    <div class="container">
+      <span class="eyebrow">{isZh ? '全系列技术规格' : 'Product Portfolio'}</span>
+      <h1 class="hero-title" style="font-size: 2.5rem;">
+        {isZh ? '精密设备与核心模组' : 'Industrial Systems & Precision Modules'}
+      </h1>
+      <div class="card-grid">
+        {products.map((p) => (
+          <article class="card">
+            <div class="card-tag">{p.sku || p.category_label || 'Model'}</div>
+            <h2 class="card-title">{p.title}</h2>
+            <p class="card-summary">{p.summary}</p>
+            <a class="btn-primary" href={buildLocalizedPath(locale, `/products/${p.slug}`)}>
+              {isZh ? '查看详情与参数' : 'Specifications & RFQ'}
+            </a>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>

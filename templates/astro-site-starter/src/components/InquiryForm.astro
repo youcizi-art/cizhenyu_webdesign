@@ -1,0 +1,73 @@
+---
+interface Props {
+  locale: string;
+  defaultProduct?: string;
+}
+
+const { locale, defaultProduct = '' } = Astro.props;
+const isZh = locale.toLowerCase().startsWith('zh');
+---
+<form id="site-inquiry-form" class="card" data-locale={locale}>
+  <h2 class="section-subtitle">{isZh ? '发送项目询盘' : 'Request Engineering Quote'}</h2>
+  <div class="form-grid">
+    <div class="field-group">
+      <label for="inq-name">{isZh ? '您的姓名 *' : 'Full Name *'}</label>
+      <input id="inq-name" name="contact_name" class="field-input" required maxlength="80" />
+    </div>
+    <div class="field-group">
+      <label for="inq-email">{isZh ? '商务邮箱 *' : 'Business Email *'}</label>
+      <input id="inq-email" name="email" type="email" class="field-input" required maxlength="120" />
+    </div>
+  </div>
+  <div class="form-grid">
+    <div class="field-group">
+      <label for="inq-company">{isZh ? '公司名称' : 'Company Name'}</label>
+      <input id="inq-company" name="company" class="field-input" maxlength="120" />
+    </div>
+    <div class="field-group">
+      <label for="inq-product">{isZh ? '意向产品/方案' : 'Product of Interest'}</label>
+      <input id="inq-product" name="product_interest" class="field-input" value={defaultProduct} maxlength="120" />
+    </div>
+  </div>
+  <div class="field-group">
+    <label for="inq-message">{isZh ? '具体技术参数或采购需求 *' : 'Project Specifications & Volume *'}</label>
+    <textarea id="inq-message" name="message" class="field-textarea" rows="4" required maxlength="2000"></textarea>
+  </div>
+  <button type="submit" class="btn-primary">
+    {isZh ? '提交询盘' : 'Submit Inquiry'}
+  </button>
+  <p id="inq-feedback" style="margin-top: 12px; font-size: 0.9rem; color: var(--brand-primary);" aria-live="polite"></p>
+</form>
+
+<script is:inline>
+  (function () {
+    const form = document.getElementById('site-inquiry-form');
+    const feedback = document.getElementById('inq-feedback');
+    if (!form || !feedback) return;
+    form.addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      const fd = new FormData(form);
+      const payload = {
+        locale: form.getAttribute('data-locale') || 'en-US',
+        contact_name: String(fd.get('contact_name') || ''),
+        email: String(fd.get('email') || ''),
+        company: String(fd.get('company') || ''),
+        product_interest: String(fd.get('product_interest') || ''),
+        message: String(fd.get('message') || ''),
+      };
+      feedback.textContent = '...';
+      try {
+        const res = await fetch('/api/inquiry', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        feedback.textContent = data.msg || (res.ok ? 'Submitted' : 'Failed');
+        if (res.ok) form.reset();
+      } catch (err) {
+        feedback.textContent = String(err);
+      }
+    });
+  })();
+</script>

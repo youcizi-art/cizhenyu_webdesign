@@ -1,0 +1,32 @@
+---
+/**
+ * 结构化规格参数表（同步支撑页面可读性与 Schema.org PropertyValue 提取）。
+ */
+interface SpecRow {
+  label: string;
+  value: string;
+}
+
+interface Props {
+  title?: string;
+  specs?: SpecRow[];
+}
+
+const { title = 'Specifications', specs = [] } = Astro.props;
+const validRows = specs.filter((row) => row.label && row.value);
+---
+{validRows.length > 0 ? (
+  <section class="spec-table-section" data-geo-specs="true">
+    <h2 class="section-subtitle">{title}</h2>
+    <div class="spec-table-wrap">
+      <dl class="spec-grid">
+        {validRows.map((row) => (
+          <div class="spec-row">
+            <dt class="spec-label">{row.label}</dt>
+            <dd class="spec-value">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </section>
+) : null}

@@ -1,0 +1,62 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import GeoAnswer from '@/core/geo/GeoAnswer.astro';
+import { getSiteOrigin } from '@/core/cms/runtime-env';
+import { buildLocalizedPath, normalizeLocaleCode } from '@/core/i18n/locale';
+import { buildArticleJsonLd, buildBreadcrumbJsonLd } from '@/core/seo/schema-org';
+import { loadArticleBySlug, loadCompanyProfile } from '@/data/loaders/site-loader';
+
+const locale = normalizeLocaleCode(Astro.params.locale);
+const slug = String(Astro.params.slug || '');
+const isZh = locale.toLowerCase().startsWith('zh');
+const origin = getSiteOrigin(Astro.url.origin);
+
+const [company, article] = await Promise.all([
+  loadCompanyProfile(locale),
+  loadArticleBySlug(locale, slug),
+]);
+
+if (!article) {
+  return Astro.redirect(buildLocalizedPath(locale, '/articles'), 302);
+}
+
+const restPath = `/articles/${article.slug}`;
+const pageUrl = buildLocalizedPath(locale, restPath);
+const jsonLdNodes = [
+  buildBreadcrumbJsonLd(
+    [
+      { name: isZh ? '首页' : 'Home', href: buildLocalizedPath(locale, '/') },
+      { name: isZh ? '技术资讯' : 'Insights', href: buildLocalizedPath(locale, '/articles') },
+      { name: article.title, href: pageUrl },
+    ],
+    origin
+  ),
+  buildArticleJsonLd(article, pageUrl, company.name, origin),
+];
+---
+<BaseLayout
+  title={article.seo_title || `${article.title} | ${company.name}`}
+  description={article.seo_description || article.summary}
+  locale={locale}
+  restPath={restPath}
+  ogImage={article.cover}
+  ogType="article"
+  company={company}
+  jsonLdNodes={jsonLdNodes}
+>
+  <article class="section-block">
+    <div class="container" style="max-width: 860px;">
+      <span class="eyebrow">{article.author || company.name}</span>
+      <h1 class="hero-title" style="font-size: 2.3rem;">{article.title}</h1>
+      <GeoAnswer
+        label={isZh ? '核心结论' : 'Direct Answer'}
+        answer={article.short_answer || article.summary}
+      />
+      <div class="card" style="margin-top: 24px;">
+        <p style="margin: 0; color: var(--text-main); white-space: pre-line;">
+          {article.content || article.summary}
+        </p>
+      </div>
+    </div>
+  </article>
+</BaseLayout>

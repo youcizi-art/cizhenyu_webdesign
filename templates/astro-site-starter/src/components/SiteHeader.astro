@@ -1,0 +1,40 @@
+---
+import { buildLocalizedPath, getSupportedLocales } from '@/core/i18n/locale';
+import { loadNavItems } from '@/data/loaders/site-loader';
+
+interface Props {
+  locale: string;
+  restPath?: string;
+  companyName: string;
+}
+
+const { locale, restPath = '/', companyName } = Astro.props;
+const navItems = loadNavItems(locale);
+const locales = getSupportedLocales();
+---
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand-mark" href={buildLocalizedPath(locale, '/')}>
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span>{companyName}</span>
+    </a>
+    <nav class="nav-links" aria-label="Main navigation">
+      {navItems.map((item) => (
+        <a href={item.href}>{item.label}</a>
+      ))}
+    </nav>
+    {locales.length > 1 ? (
+      <div class="locale-pills" aria-label="Language switcher">
+        {locales.map((code) => (
+          <a
+            class="locale-pill"
+            href={buildLocalizedPath(code, restPath)}
+            data-active={code === locale ? 'true' : 'false'}
+          >
+            {code}
+          </a>
+        ))}
+      </div>
+    ) : null}
+  </div>
+</header>

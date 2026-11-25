@@ -1,0 +1,64 @@
+{
+  "protocolVersion": 1,
+  "id": "webdesign",
+  "name": "WebDesign Studio",
+  "category": "web",
+  "tier": "recommended",
+  "defaultLocale": "zh-CN",
+  "description": "Astro 前端站点可视化工作台：内置 SEO/GEO 优化，支持先构建全静态站点，满意后调起 Agent 完成 CMS 集合字段对接与 Pages 上线。",
+  "source": {
+    "github": "https://github.com/youcizi-art/cizhenyu_webdesign",
+    "defaultRef": "master"
+  },
+  "install": {
+    "runtime": "node",
+    "steps": [],
+    "readyCheck": [
+      "server.mjs",
+      "manage.mjs",
+      "mcp_launcher.mjs",
+      "public/index.html"
+    ]
+  },
+  "config": {
+    "type": "page",
+    "url": "http://127.0.0.1:20190/",
+    "requireService": true
+  },
+  "env": [
+    { "name": "CIZHENYU_AUTH_DIR", "from": "credentialsDir" },
+    { "name": "CIZHENYU_WORK_ROOT", "from": "userWorkRoot" },
+    { "name": "CIZHENYU_SITES_DIR", "from": "sitesDir" }
+  ],
+  "mcp": {
+    "transport": "stdio",
+    "command": "node",
+    "args": ["mcp_launcher.mjs"],
+    "cwd": "."
+  },
+  "guides": {
+    "setup": "guides/setup.md",
+    "setupByLocale": {
+      "zh-CN": "guides/setup.md",
+      "zh": "guides/setup.md",
+      "en": "guides/setup.en.md",
+      "en-US": "guides/setup.en.md"
+    }
+  },
+  "health": {
+    "requireCredentials": false,
+    "requireReadyFiles": [
+      "server.mjs",
+      "manage.mjs",
+      "mcp_launcher.mjs",
+      "public/index.html"
+    ]
+  },
+  "actions": [],
+  "i18n": {
+    "en": {
+      "name": "WebDesign Studio",
+      "description": "Astro site builder studio with built-in SEO/GEO optimization, static-first workflow, and automated CMS schema wiring via Agents."
+    }
+  }
+}

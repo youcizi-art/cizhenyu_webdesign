@@ -1,0 +1,64 @@
+---
+import SeoHead from '@/core/seo/SeoHead.astro';
+import SiteHeader from '@/components/SiteHeader.astro';
+import SiteFooter from '@/components/SiteFooter.astro';
+import { getSiteConfig } from '@/core/cms/runtime-env';
+import type { CompanyProfile } from '@/data/loaders/site-loader';
+import '@/styles/tokens.css';
+
+interface Props {
+  title: string;
+  description: string;
+  locale: string;
+  restPath?: string;
+  company: CompanyProfile;
+  ogImage?: string;
+  ogType?: string;
+  robots?: string;
+  jsonLdNodes?: Array<Record<string, unknown>>;
+}
+
+const {
+  title,
+  description,
+  locale,
+  restPath = '/',
+  company,
+  ogImage,
+  ogType,
+  robots,
+  jsonLdNodes = [],
+} = Astro.props;
+
+const siteCfg = getSiteConfig();
+const primaryColor = siteCfg.brand?.primaryColor || '#2563eb';
+const accentColor = siteCfg.brand?.accentColor || '#0ea5e9';
+const canonicalPath = restPath === '/' ? `/${locale}` : `/${locale}${restPath}`;
+---
+<!DOCTYPE html>
+<html lang={locale} style={`--brand-primary: ${primaryColor}; --brand-accent: ${accentColor};`}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <SeoHead
+      title={title}
+      description={description}
+      canonicalPath={canonicalPath}
+      restPath={restPath}
+      locale={locale}
+      siteName={company.name}
+      ogImage={ogImage}
+      ogType={ogType}
+      robots={robots}
+      jsonLdNodes={jsonLdNodes}
+    />
+    {siteCfg.customHeadScript ? <Fragment set:html={siteCfg.customHeadScript} /> : null}
+  </head>
+  <body>
+    <SiteHeader locale={locale} restPath={restPath} companyName={company.name} />
+    <main>
+      <slot />
+    </main>
+    <SiteFooter locale={locale} company={company} />
+  </body>
+</html>

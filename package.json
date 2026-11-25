@@ -1,0 +1,14 @@
+{
+  "name": "cizhenyu-webdesign",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Cizhenyu WebDesign Studio — Page tool & MCP for standalone Astro sites",
+  "scripts": {
+    "start": "node manage.mjs start",
+    "stop": "node manage.mjs stop",
+    "status": "node manage.mjs status",
+    "serve": "node manage.mjs serve",
+    "ui:build": "npm --prefix ui run build"
+  }
+}

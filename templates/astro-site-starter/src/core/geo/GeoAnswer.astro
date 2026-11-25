@@ -1,0 +1,18 @@
+---
+/**
+ * GEO（生成式引擎优化）语义简答组件：在核心业务页面输出直接、可核验的事实摘要，便于 AI 搜索引擎引用。
+ */
+interface Props {
+  label?: string;
+  answer?: string;
+}
+
+const { label = 'Key Takeaway', answer = '' } = Astro.props;
+const text = String(answer || '').trim();
+---
+{text ? (
+  <aside class="geo-answer" data-geo-answer="true" aria-label={label}>
+    <div class="geo-answer-badge">{label}</div>
+    <p class="geo-answer-text">{text}</p>
+  </aside>
+) : null}

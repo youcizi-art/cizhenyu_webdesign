@@ -1,0 +1,160 @@
+{
+  "company_info": {
+    "en-US": {
+      "name": "PrecisionTech Solutions",
+      "slogan": "Engineered Reliability for Global Manufacturing",
+      "summary": "PrecisionTech designs and manufactures high-accuracy optical inspection and automation systems for industrial B2B partners across North America, Europe, and Asia.",
+      "short_answer": "PrecisionTech Solutions is an OEM/ODM manufacturer specializing in sub-micron optical inspection and automated industrial assembly systems with global technical support.",
+      "email": "sales@example-precision.com",
+      "phone": "+1 (555) 234-8900",
+      "address": "Innovation Park, Suite 400, Austin, TX",
+      "highlights": [
+        { "metric": "0.5 um", "label": "Repeatability Accuracy" },
+        { "metric": "48 hrs", "label": "Engineering Sample Turnaround" },
+        { "metric": "30+ Countries", "label": "Deployed Production Lines" }
+      ]
+    },
+    "zh-CN": {
+      "name": "精工智测科技 (PrecisionTech)",
+      "slogan": "面向全球制造业的高可靠精密检测与自动化方案",
+      "summary": "专注于亚微米级光学检测与工业自动化集成系统，为北美、欧洲及亚太制造企业提供定制化 OEM/ODM 交付与工程技术支持。",
+      "short_answer": "精工智测科技是一家专注于亚微米光学检测设备与自动化装配产线的研发制造企业，支持定制化工程打样与多语种交付支持。",
+      "email": "sales@example-precision.com",
+      "phone": "+86 400-800-0000",
+      "address": "智造科技产业园 A 座 400 室",
+      "highlights": [
+        { "metric": "0.5 微米", "label": "重复定位检测精度" },
+        { "metric": "48 小时", "label": "工程样品评估响应" },
+        { "metric": "30+ 国家", "label": "产线稳定运行覆盖" }
+      ]
+    }
+  },
+  "product": {
+    "en-US": [
+      {
+        "slug": "optiscan-pro-x1",
+        "title": "OptiScan Pro X1 Inline AOI System",
+        "sku": "PT-AOI-X1",
+        "category_label": "Optical Inspection",
+        "summary": "High-speed 3D automated optical inspection module engineered for high-density PCB and semiconductor packaging lines.",
+        "short_answer": "OptiScan Pro X1 is an inline 3D AOI system delivering 0.5-micron height resolution and up to 65 sq.cm/sec inspection speed for SMT production lines.",
+        "cover": "",
+        "content": "Designed for zero-defect electronics manufacturing, the OptiScan Pro X1 combines multi-phase structured light projection with telecentric optics to eliminate shadow blind spots on dense assemblies.",
+        "spec_data": [
+          { "label": "FOV Resolution", "value": "5.0 um / 10.0 um configurable" },
+          { "label": "Inspection Speed", "value": "Up to 65 cm2/sec" },
+          { "label": "Max Board Size", "value": "510 mm x 460 mm" },
+          { "label": "Communication Protocol", "value": "IPC-CFX / Hermes / SECS-GEM" }
+        ],
+        "seo_title": "OptiScan Pro X1 Inline 3D AOI System | PrecisionTech",
+        "seo_description": "Sub-micron inline 3D automated optical inspection system with IPC-CFX integration for high-density electronics manufacturing."
+      },
+      {
+        "slug": "microlink-servo-stage",
+        "title": "MicroLink Linear Motor Motion Stage",
+        "sku": "PT-STG-400",
+        "category_label": "Precision Motion",
+        "summary": "Ironless direct-drive linear stage offering ultra-low velocity ripple for laser micromachining and wafer metrology.",
+        "short_answer": "MicroLink PT-STG-400 is a direct-drive linear motor stage featuring +/-0.4 um bidirectional repeatability and ironless zero-cogging dynamics.",
+        "cover": "",
+        "content": "Built on a stress-relieved granite or hard-anodized aluminum base, MicroLink stages integrate optical linear encoders for maintenance-free 24/7 cleanroom operation.",
+        "spec_data": [
+          { "label": "Travel Range", "value": "200 mm to 600 mm" },
+          { "label": "Repeatability", "value": "+/- 0.4 um" },
+          { "label": "Max Velocity", "value": "1,500 mm/s" },
+          { "label": "Cleanroom Rating", "value": "ISO Class 5 Ready" }
+        ],
+        "seo_title": "MicroLink Direct-Drive Linear Stage | PrecisionTech",
+        "seo_description": "Zero-cogging linear motor positioning stage engineered for wafer metrology, photonics alignment, and laser processing."
+      }
+    ],
+    "zh-CN": [
+      {
+        "slug": "optiscan-pro-x1",
+        "title": "OptiScan Pro X1 在线式 3D AOI 光学检测系统",
+        "sku": "PT-AOI-X1",
+        "category_label": "光学检测设备",
+        "summary": "面向高密度电路板与先进封装产线的高速三维自动光学检测模组，兼顾亚微米高度复原与高直通率。",
+        "short_answer": "OptiScan Pro X1 是一款在线 3D AOI 检测系统，具备 0.5 微米高度解析度与每秒 65 平方厘米的检测速度，支持 IPC-CFX 协议。",
+        "cover": "",
+        "content": "针对高可靠性电子制造场景设计，采用多相位结构光投影与远心光学镜头组合，消除高元件遮挡阴影盲区。",
+        "spec_data": [
+          { "label": "光学分辨率", "value": "5.0 um / 10.0 um 可选" },
+          { "label": "检测速度", "value": "最高 65 cm2/s" },
+          { "label": "最大基板尺寸", "value": "510 mm x 460 mm" },
+          { "label": "工业总线协议", "value": "IPC-CFX / Hermes / SECS-GEM" }
+        ],
+        "seo_title": "OptiScan Pro X1 在线 3D AOI 检测系统 | 精工智测",
+        "seo_description": "高密度贴装与先进封装在线式三维自动光学检测系统，支持 IPC-CFX 智能工厂互联。"
+      },
+      {
+        "slug": "microlink-servo-stage",
+        "title": "MicroLink 无铁芯直驱直线电机精密平台",
+        "sku": "PT-STG-400",
+        "category_label": "精密运动控制",
+        "summary": "零齿槽效应直驱运动平台，适用于晶圆量测、光子耦合对准与精密激光微加工。",
+        "short_answer": "MicroLink PT-STG-400 采用无铁芯直驱电机与高分辨率光栅尺，实现 +/-0.4 微米双向重复定位精度，满足洁净室全天候运行。",
+        "cover": "",
+        "content": "平台底座采用航空硬质阳极氧化铝或天然花岗岩结构，具备极低的速度波动率与免维护高寿命表现。",
+        "spec_data": [
+          { "label": "有效行程", "value": "200 mm - 600 mm" },
+          { "label": "双向重复精度", "value": "+/- 0.4 um" },
+          { "label": "最大运行速度", "value": "1,500 mm/s" },
+          { "label": "洁净室等级", "value": "兼容 ISO Class 5" }
+        ],
+        "seo_title": "MicroLink 精密直驱直线电机平台 | 精工智测",
+        "seo_description": "面向半导体量测与激光微加工的零齿槽效应直驱运动平台，双向重复定位精度达 0.4 微米。"
+      }
+    ]
+  },
+  "article": {
+    "en-US": [
+      {
+        "slug": "how-to-select-inline-3d-aoi-for-automotive-pcba",
+        "title": "How to Select an Inline 3D AOI System for Automotive PCBA Lines",
+        "author": "Application Engineering Team",
+        "summary": "Key optical, cycle-time, and MES traceability criteria when evaluating 3D inspection equipment for automotive electronics.",
+        "short_answer": "When selecting an inline 3D AOI for automotive PCBA, prioritize dual/quad-projector shadow suppression, Gage R&R under 10%, and native IPC-CFX traceability.",
+        "cover": "",
+        "content": "Automotive electronics demand strict solder joint volume measurement and pin-in-paste inspection without slowing line takt time. Evaluating projector geometry, telecentric lens distortion, and false-call tuning workflows upfront reduces commissioning time by over 40%.",
+        "seo_title": "Selecting Inline 3D AOI for Automotive PCBA | Technical Guide",
+        "seo_description": "Engineering checklist covering optical resolution, shadow suppression, Gage R&R, and IPC-CFX integration for automotive SMT lines."
+      }
+    ],
+    "zh-CN": [
+      {
+        "slug": "how-to-select-inline-3d-aoi-for-automotive-pcba",
+        "title": "汽车电子 PCBA 产线如何科学选型在线 3D AOI 设备",
+        "author": "应用工程团队",
+        "summary": "从多向投影消影、节拍匹配、Gage R&R 重复性及 MES 追溯协议四个维度拆解选型指标。",
+        "short_answer": "汽车电子 PCBA 选型在线 3D AOI 时，核心应核验多向结构光消影能力、小于 10% 的 Gage R&R 指标以及原生 IPC-CFX 追溯对接能力。",
+        "cover": "",
+        "content": "车规级电子装联对焊锡体积测量与通孔回流焊检测提出了极高要求。提前评估远心镜头畸变率、高元件阴影抑制算法及换线编程效率，可将产线导入调试周期缩短 40% 以上。",
+        "seo_title": "汽车电子在线 3D AOI 选型技术指南 | 精工智测",
+        "seo_description": "详解车规级 SMT 产线 3D AOI 光学分辨率、阴影抑制、Gage R&R 与智能工厂协议选型标准。"
+      }
+    ]
+  },
+  "faq": {
+    "en-US": [
+      {
+        "question": "Can systems be customized for non-standard substrate sizes and cleanroom environments?",
+        "answer": "Yes. Both optical gantry spans and motion stage stroke lengths can be tailored to custom carrier dimensions, with ISO Class 5 cleanroom-compatible cabling and materials available."
+      },
+      {
+        "question": "How is sample evaluation conducted before placing an OEM order?",
+        "answer": "Send sample assemblies or CAD drawings to our application lab. Within 48 hours of receipt, we provide a full repeatability report, cycle-time simulation, and imaging dataset."
+      }
+    ],
+    "zh-CN": [
+      {
+        "question": "设备是否支持非标载具尺寸定制与无尘洁净室环境改造？",
+        "answer": "支持。光学龙门跨距与直线平台行程均可按客户载具图纸定制，并可选配符合 ISO Class 5 标准的低发尘拖链与密封材料。"
+      },
+      {
+        "question": "在正式采购或 OEM 合作前，如何进行样品实测评估？",
+        "answer": "您可将测试样品或 CAD 图纸寄送至我们的应用实验室，收到样品后 48 小时内即可出具完整的检测重复性报告、节拍测算与实拍图像集。"
+      }
+    ]
+  }
+}

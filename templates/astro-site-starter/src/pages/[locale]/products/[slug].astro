@@ -1,0 +1,90 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import GeoAnswer from '@/core/geo/GeoAnswer.astro';
+import SpecTable from '@/core/geo/SpecTable.astro';
+import InquiryForm from '@/components/InquiryForm.astro';
+import { getSiteOrigin } from '@/core/cms/runtime-env';
+import { buildLocalizedPath, normalizeLocaleCode } from '@/core/i18n/locale';
+import { buildBreadcrumbJsonLd, buildProductJsonLd } from '@/core/seo/schema-org';
+import { loadCompanyProfile, loadProductBySlug } from '@/data/loaders/site-loader';
+
+const locale = normalizeLocaleCode(Astro.params.locale);
+const slug = String(Astro.params.slug || '');
+const isZh = locale.toLowerCase().startsWith('zh');
+const origin = getSiteOrigin(Astro.url.origin);
+
+const [company, product] = await Promise.all([
+  loadCompanyProfile(locale),
+  loadProductBySlug(locale, slug),
+]);
+
+if (!product) {
+  return Astro.redirect(buildLocalizedPath(locale, '/products'), 302);
+}
+
+const restPath = `/products/${product.slug}`;
+const pageUrl = buildLocalizedPath(locale, restPath);
+const jsonLdNodes = [
+  buildBreadcrumbJsonLd(
+    [
+      { name: isZh ? '首页' : 'Home', href: buildLocalizedPath(locale, '/') },
+      { name: isZh ? '产品中心' : 'Products', href: buildLocalizedPath(locale, '/products') },
+      { name: product.title, href: pageUrl },
+    ],
+    origin
+  ),
+  buildProductJsonLd(
+    {
+      title: product.title,
+      summary: product.summary,
+      sku: product.sku,
+      cover: product.cover,
+      specs: product.spec_data,
+    },
+    pageUrl,
+    company.name,
+    origin
+  ),
+];
+---
+<BaseLayout
+  title={product.seo_title || `${product.title} | ${company.name}`}
+  description={product.seo_description || product.summary}
+  locale={locale}
+  restPath={restPath}
+  ogImage={product.cover}
+  ogType="product"
+  company={company}
+  jsonLdNodes={jsonLdNodes}
+>
+  <section class="section-block">
+    <div class="container">
+      {product.sku ? <span class="eyebrow">SKU: {product.sku}</span> : null}
+      <h1 class="hero-title" style="font-size: 2.5rem;">{product.title}</h1>
+      <p class="hero-desc">{product.summary}</p>
+
+      <GeoAnswer
+        label={isZh ? '核心规格摘要' : 'Technical Summary'}
+        answer={product.short_answer || product.summary}
+      />
+
+      {product.content ? (
+        <div class="card" style="margin: 28px 0;">
+          <h2 class="section-subtitle">{isZh ? '方案与架构说明' : 'Engineering Overview'}</h2>
+          <p style="margin: 0; color: var(--text-secondary);">{product.content}</p>
+        </div>
+      ) : null}
+
+      <div style="margin: 32px 0;">
+        <SpecTable
+          title={isZh ? '关键技术参数表' : 'Technical Specifications'}
+          specs={product.spec_data}
+        />
+      </div>
+
+      <div style="margin-top: 44px;">
+        <InquiryForm locale={locale} defaultProduct={product.title} />
+      </div>
+    </div>
+  </section>
+</BaseLayout>

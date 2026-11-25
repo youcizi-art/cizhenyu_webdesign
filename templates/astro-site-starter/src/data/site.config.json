@@ -1,0 +1,22 @@
+{
+  "siteKey": "demo",
+  "displayName": "PrecisionTech Solutions",
+  "siteOrigin": "http://127.0.0.1:4321",
+  "dataSource": "mock",
+  "defaultLocale": "en-US",
+  "locales": ["en-US", "zh-CN"],
+  "brand": {
+    "primaryColor": "#2563eb",
+    "accentColor": "#0ea5e9",
+    "surfaceMode": "light",
+    "tagline": "Industrial-grade precision engineering for global B2B partners."
+  },
+  "navigation": [
+    { "key": "home", "href": "/", "labels": { "en-US": "Home", "zh-CN": "首页" } },
+    { "key": "products", "href": "/products", "labels": { "en-US": "Products", "zh-CN": "产品中心" } },
+    { "key": "articles", "href": "/articles", "labels": { "en-US": "Insights", "zh-CN": "技术资讯" } },
+    { "key": "about", "href": "/about", "labels": { "en-US": "About", "zh-CN": "关于我们" } },
+    { "key": "contact", "href": "/contact", "labels": { "en-US": "Contact", "zh-CN": "联系询盘" } }
+  ],
+  "customHeadScript": ""
+}

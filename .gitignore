@@ -1,0 +1,8 @@
+node_modules/
+home/
+ui/node_modules/
+templates/astro-site-starter/node_modules/
+templates/astro-site-starter/dist/
+templates/astro-site-starter/.astro/
+*.log
+.DS_Store

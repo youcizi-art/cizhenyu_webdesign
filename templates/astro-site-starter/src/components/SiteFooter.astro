@@ -1,0 +1,38 @@
+---
+import type { CompanyProfile } from '@/data/loaders/site-loader';
+import { loadNavItems } from '@/data/loaders/site-loader';
+
+interface Props {
+  locale: string;
+  company: CompanyProfile;
+}
+
+const { locale, company } = Astro.props;
+const navItems = loadNavItems(locale);
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <strong style="color: #f8fafc; font-size: 1.05rem;">{company.name}</strong>
+      <p style="margin-top: 8px; color: #94a3b8;">{company.summary}</p>
+    </div>
+    <div>
+      <strong style="color: #f8fafc;">Navigation</strong>
+      <ul style="list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px;">
+        {navItems.map((item) => (
+          <li><a href={item.href} style="color: #cbd5e1;">{item.label}</a></li>
+        ))}
+      </ul>
+    </div>
+    <div>
+      <strong style="color: #f8fafc;">Direct Contact</strong>
+      <p style="margin: 10px 0 4px;">Email: {company.email}</p>
+      <p style="margin: 0 0 4px;">Phone: {company.phone}</p>
+      <p style="margin: 0; color: #94a3b8;">{company.address}</p>
+    </div>
+  </div>
+  <div class="container" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); color: #64748b; font-size: 0.84rem;">
+    &copy; {year} {company.name}. All rights reserved.
+  </div>
+</footer>

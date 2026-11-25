@@ -1,0 +1,26 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getDefaultLocale, buildLocalizedPath } from '@/core/i18n/locale';
+import { loadCompanyProfile } from '@/data/loaders/site-loader';
+
+const locale = getDefaultLocale();
+const company = await loadCompanyProfile(locale);
+Astro.response.status = 404;
+---
+<BaseLayout
+  title={`404 | ${company.name}`}
+  description="The requested page could not be found."
+  locale={locale}
+  restPath="/404"
+  robots="noindex, nofollow"
+  company={company}
+>
+  <section class="hero-section">
+    <div class="container">
+      <span class="eyebrow">404 Not Found</span>
+      <h1 class="hero-title">Page Not Found</h1>
+      <p class="hero-desc">The resource you requested may have moved or been updated.</p>
+      <a class="btn-primary" href={buildLocalizedPath(locale, '/')}>Return to Homepage</a>
+    </div>
+  </section>
+</BaseLayout>

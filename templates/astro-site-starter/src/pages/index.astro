@@ -1,0 +1,5 @@
+---
+import { buildLocalizedPath, getDefaultLocale } from '@/core/i18n/locale';
+
+return Astro.redirect(buildLocalizedPath(getDefaultLocale(), '/'), 302);
+---

@@ -1,0 +1,53 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import InquiryForm from '@/components/InquiryForm.astro';
+import { getSiteOrigin } from '@/core/cms/runtime-env';
+import { buildLocalizedPath, normalizeLocaleCode } from '@/core/i18n/locale';
+import { buildBreadcrumbJsonLd } from '@/core/seo/schema-org';
+import { loadCompanyProfile } from '@/data/loaders/site-loader';
+
+const locale = normalizeLocaleCode(Astro.params.locale);
+const isZh = locale.toLowerCase().startsWith('zh');
+const origin = getSiteOrigin(Astro.url.origin);
+const company = await loadCompanyProfile(locale);
+
+const crumbs = buildBreadcrumbJsonLd(
+  [
+    { name: isZh ? '首页' : 'Home', href: buildLocalizedPath(locale, '/') },
+    { name: isZh ? '联系我们' : 'Contact', href: buildLocalizedPath(locale, '/contact') },
+  ],
+  origin
+);
+---
+<BaseLayout
+  title={`${isZh ? '联系我们与在线询盘' : 'Contact & RFQ'} | ${company.name}`}
+  description={company.summary}
+  locale={locale}
+  restPath="/contact"
+  company={company}
+  jsonLdNodes={[crumbs]}
+>
+  <section class="section-block">
+    <div class="container">
+      <span class="eyebrow">{isZh ? '商务与技术支持' : 'Global Engineering Support'}</span>
+      <h1 class="hero-title" style="font-size: 2.4rem;">
+        {isZh ? '联系我们的应用工程团队' : 'Connect With Our Application Engineers'}
+      </h1>
+      <div class="card-grid" style="margin-bottom: 36px;">
+        <div class="card">
+          <div class="card-tag">Email</div>
+          <p class="card-title" style="margin-bottom: 4px;">{company.email}</p>
+          <p class="card-summary" style="margin-bottom: 0;">
+            {isZh ? '工作日 24 小时内反馈技术评估与报价' : 'Technical response within 24 business hours'}
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-tag">Phone & Location</div>
+          <p class="card-title" style="margin-bottom: 4px;">{company.phone}</p>
+          <p class="card-summary" style="margin-bottom: 0;">{company.address}</p>
+        </div>
+      </div>
+      <InquiryForm locale={locale} />
+    </div>
+  </section>
+</BaseLayout>

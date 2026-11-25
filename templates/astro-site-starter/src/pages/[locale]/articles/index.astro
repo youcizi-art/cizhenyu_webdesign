@@ -1,0 +1,53 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getSiteOrigin } from '@/core/cms/runtime-env';
+import { buildLocalizedPath, normalizeLocaleCode } from '@/core/i18n/locale';
+import { buildBreadcrumbJsonLd } from '@/core/seo/schema-org';
+import { loadArticles, loadCompanyProfile } from '@/data/loaders/site-loader';
+
+const locale = normalizeLocaleCode(Astro.params.locale);
+const isZh = locale.toLowerCase().startsWith('zh');
+const origin = getSiteOrigin(Astro.url.origin);
+
+const [company, articles] = await Promise.all([
+  loadCompanyProfile(locale),
+  loadArticles(locale),
+]);
+
+const crumbs = buildBreadcrumbJsonLd(
+  [
+    { name: isZh ? '首页' : 'Home', href: buildLocalizedPath(locale, '/') },
+    { name: isZh ? '技术资讯' : 'Insights', href: buildLocalizedPath(locale, '/articles') },
+  ],
+  origin
+);
+---
+<BaseLayout
+  title={`${isZh ? '技术资讯与选型指南' : 'Engineering Insights & Guides'} | ${company.name}`}
+  description={company.summary}
+  locale={locale}
+  restPath="/articles"
+  company={company}
+  jsonLdNodes={[crumbs]}
+>
+  <section class="section-block">
+    <div class="container">
+      <span class="eyebrow">{isZh ? '知识库与应用指南' : 'Knowledge Hub'}</span>
+      <h1 class="hero-title" style="font-size: 2.4rem;">
+        {isZh ? '技术洞察与选型指南' : 'Technical Insights & Selection Guides'}
+      </h1>
+      <div class="card-grid">
+        {articles.map((a) => (
+          <article class="card">
+            <div class="card-tag">{a.author || 'Engineering'}</div>
+            <h2 class="card-title">{a.title}</h2>
+            <p class="card-summary">{a.summary}</p>
+            <a class="btn-secondary" href={buildLocalizedPath(locale, `/articles/${a.slug}`)}>
+              {isZh ? '阅读详情' : 'Read Article'}
+            </a>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
