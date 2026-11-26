@@ -12,10 +12,17 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { createServer as createNetServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { generateSiteAgentsMd, validateCmsContract } from './platform-spec.mjs';
 import { ROOT, resolveSitesRoot, sanitizeSiteKey } from './paths.mjs';
+import {
+  getPreviewStatus,
+  startPreviewForSite,
+  stopAllPreviews,
+  stopSitePreview,
+} from './preview-manager.mjs';
+
+export { getPreviewStatus, stopAllPreviews, stopSitePreview };
 
 const STARTER_DIR = join(ROOT, 'templates', 'astro-site-starter');
 const SKILLS_SRC_DIR = join(ROOT, 'skills');
@@ -29,36 +36,6 @@ const AGENT_SKILL_REL_DIRS = [
 
 /** @type {Map<string, { state: 'installing' | 'error', startedAt: string, error?: string, child?: import('node:child_process').ChildProcess }>} */
 const installJobs = new Map();
-
-/** @type {Map<string, { pid: number, port: number, url: string, child: import('node:child_process').ChildProcess }>} */
-const previewJobs = new Map();
-
-function canBindPort(port, host) {
-  return new Promise((resolveOk) => {
-    const srv = createNetServer();
-    srv.once('error', (err) => {
-      // 无 IPv6 环回时跳过 ::1 检查
-      if (host === '::1' && (err?.code === 'EADDRNOTAVAIL' || err?.code === 'EAFNOSUPPORT')) {
-        resolveOk(true);
-        return;
-      }
-      resolveOk(false);
-    });
-    srv.once('listening', () => {
-      srv.close(() => resolveOk(true));
-    });
-    srv.listen(port, host);
-  });
-}
-
-async function findFreePort(startPort = 4321) {
-  for (let port = startPort; port <= startPort + 50; port++) {
-    if ((await canBindPort(port, '127.0.0.1')) && (await canBindPort(port, '::1'))) {
-      return port;
-    }
-  }
-  throw new Error('无法找到空闲本地预览端口');
-}
 
 function readJsonSafe(file, fallback = null) {
   if (!existsSync(file)) return fallback;
@@ -459,108 +436,12 @@ export function auditSiteSeoGeo(siteKeyRaw, sitesDirOverride = '') {
   };
 }
 
-export function getPreviewStatus(siteKeyRaw) {
-  const siteKey = sanitizeSiteKey(siteKeyRaw);
-  const item = previewJobs.get(siteKey);
-  if (!item) {
-    return { running: false, port: null, url: null };
-  }
-  return { running: true, port: item.port, url: item.url };
-}
-
 /**
- * 启动站点本地预览服务（npm run dev），等待端口就绪后返回可访问地址。
+ * 启动站点本地预览服务（委托给 preview-manager，内置孤儿回收与异常自愈）。
  */
 export async function startSitePreview(siteKeyRaw, sitesDirOverride = '') {
   const detail = getSiteDetail(siteKeyRaw, sitesDirOverride);
-  const existing = previewJobs.get(detail.siteKey);
-  if (existing) {
-    return getPreviewStatus(detail.siteKey);
-  }
-  if (!existsSync(join(detail.path, 'node_modules', 'astro'))) {
-    throw new Error('站点依赖尚未安装完成，请等待「依赖已就绪」后再启动预览');
-  }
-
-  const port = await findFreePort(4321);
-  const isWin = process.platform === 'win32';
-  const cmd = isWin ? 'cmd.exe' : 'npm';
-  const args = isWin
-    ? ['/d', '/s', '/c', `npm run dev -- --host 127.0.0.1 --port ${port}`]
-    : ['run', 'dev', '--', '--host', '127.0.0.1', '--port', String(port)];
-
-  const child = spawn(cmd, args, {
-    cwd: detail.path,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    windowsHide: true,
-  });
-
-  let stderrTail = '';
-  child.stderr?.on('data', (chunk) => {
-    stderrTail = (stderrTail + chunk.toString()).slice(-1200);
-  });
-
-  const url = `http://127.0.0.1:${port}/`;
-  previewJobs.set(detail.siteKey, { pid: child.pid || 0, port, url, child });
-  child.on('exit', () => {
-    if (previewJobs.get(detail.siteKey)?.child === child) {
-      previewJobs.delete(detail.siteKey);
-    }
-  });
-
-  // 等待 Astro dev 服务器真正监听响应（最长约 18 秒）
-  let ready = false;
-  for (let i = 0; i < 45; i++) {
-    if (!previewJobs.has(detail.siteKey)) {
-      throw new Error(`本地预览进程提前退出：${stderrTail.trim() || '请检查站点代码'}`);
-    }
-    try {
-      const res = await fetch(`http://127.0.0.1:${port}/robots.txt`, {
-        signal: AbortSignal.timeout(1000),
-      });
-      if (res.status < 500) {
-        ready = true;
-        break;
-      }
-    } catch {
-      // keep waiting
-    }
-    await new Promise((r) => setTimeout(r, 400));
-  }
-
-  if (!ready) {
-    stopSitePreview(detail.siteKey);
-    throw new Error(`本地预览启动超时（端口 ${port} 未响应）`);
-  }
-
-  return getPreviewStatus(detail.siteKey);
-}
-
-/**
- * 停止站点本地预览服务（等价于在终端按 Ctrl+C，彻底结束进程树）。
- */
-export function stopSitePreview(siteKeyRaw) {
-  const siteKey = sanitizeSiteKey(siteKeyRaw);
-  const item = previewJobs.get(siteKey);
-  previewJobs.delete(siteKey);
-  if (!item) {
-    return { running: false, port: null, url: null };
-  }
-  try {
-    if (process.platform === 'win32' && item.pid) {
-      spawnSync('taskkill', ['/PID', String(item.pid), '/T', '/F'], { windowsHide: true });
-    } else {
-      item.child.kill('SIGINT');
-    }
-  } catch {
-    // ignore
-  }
-  return { running: false, port: null, url: null };
-}
-
-export function stopAllPreviews() {
-  for (const key of [...previewJobs.keys()]) {
-    stopSitePreview(key);
-  }
+  return startPreviewForSite(detail.siteKey, detail.path);
 }
 
 export async function buildSiteForProduction(siteKeyRaw, sitesDirOverride = '') {

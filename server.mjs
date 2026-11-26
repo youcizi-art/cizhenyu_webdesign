@@ -21,6 +21,9 @@ import {
   ROOT,
 } from './server/paths.mjs';
 import {
+  reapOrphanPreviewsOnBoot,
+} from './server/preview-manager.mjs';
+import {
   createSiteProject,
   deleteSiteProject,
   getSiteDetail,
@@ -34,6 +37,8 @@ import {
 
 ensureHome();
 writeFileSync(pidPath(), String(process.pid), 'utf8');
+// 启动时回收上次软件异常退出遗留的孤儿预览进程
+reapOrphanPreviewsOnBoot();
 // 启动时记录代码指纹，供 manage.mjs 判断常驻进程是否已过期
 const STARTED_CODE_STAMP = codeStamp();
 
