@@ -3,10 +3,19 @@
  * 1. 严格空闲端口检测（TCP 连接拒绝 + IPv4/IPv6 exclusive 试绑），避开任何被其他程序占用的端口；
  * 2. 以子进程 stdout 实际输出的监听端口为唯一真源，并校验 /robots.txt === 200，彻底杜绝把其他软件误判为预览成功；
  * 3. 按站点绝对路径精准回收孤儿进程（绝不按端口号误杀其他软件），遇到 workerd / 缓存锁自动清理并重试；
- * 4. 实时校验 PID 存活状态，防止外部关闭进程后界面状态失真。
+ * 4. Windows 下自动修复被沙箱/安全软件毒化的 NTFS ACL 与完整性级别（CreateDirectory #5）；
+ * 5. 确保 astro cloudflare adapter persistState:false，并隔离 TMP 后重试；
+ * 6. 实时校验 PID 存活状态，防止外部关闭进程后界面状态失真。
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createConnection, createServer as createNetServer } from 'node:net';
 import { join } from 'node:path';
 import { ensureHome, homeDir, sanitizeSiteKey } from './paths.mjs';
@@ -187,17 +196,23 @@ function parseAstroListeningPort(stdoutChunk) {
 }
 
 function isRecoverablePreviewError(cleanText) {
-  return /workerd|miniflare|CreateDirectory|EACCES|EBUSY|EPERM|EADDRINUSE|\.wrangler|拒绝访问|optimizeDeps/i.test(
+  return /workerd|miniflare|CreateDirectory|EACCES|EBUSY|EPERM|EADDRINUSE|\.wrangler|拒绝访问|Access is denied|optimizeDeps|filesystem-disk-win32/i.test(
+    cleanText
+  );
+}
+
+function isAclOrAccessDeniedError(cleanText) {
+  return /CreateDirectory|拒绝访问|Access is denied|EACCES|EPERM|filesystem-disk-win32|Mandatory Label|integrity/i.test(
     cleanText
   );
 }
 
 function formatFriendlyPreviewError(rawText, autoHealed) {
   const clean = stripAnsi(rawText);
-  if (/miniflare|workerd|CreateDirectory|拒绝访问|EACCES|EBUSY|EPERM/i.test(clean)) {
+  if (isAclOrAccessDeniedError(clean) || /miniflare|workerd/i.test(clean)) {
     return autoHealed
-      ? '本地预览运行时缓存目录被系统或安全软件临时锁定（已自动清理残留进程与缓存并重试一次，仍未解除）。请稍等 3 秒再点「预览」，或检查安全软件是否拦截了 workerd.exe。'
-      : '本地预览运行时临时目录权限冲突，正在自动清理修复…';
+      ? '本地预览仍无法写入站点目录（已自动修复 NTFS 权限、清理缓存并重试）。请稍等几秒再点「预览」；若仍失败，请暂时排除杀毒对 workerd.exe 的拦截，或在站点目录手动执行一次「安装依赖」后重试。'
+      : '本地预览运行时目录权限冲突，正在自动清理修复…';
   }
   if (/EADDRINUSE/i.test(clean)) {
     return '预览端口刚被其他程序占用，请重新点击「预览」以自动分配新端口。';
@@ -210,9 +225,117 @@ function formatFriendlyPreviewError(rawText, autoHealed) {
   return `本地预览启动失败：${firstLine.slice(0, 180)}`;
 }
 
+function runIcacls(args, timeoutMs = 90000) {
+  try {
+    return spawnSync('icacls', args, {
+      windowsHide: true,
+      timeout: timeoutMs,
+      encoding: 'utf8',
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 探测站点根目录是否允许创建子目录。
+ * 注意：Node mkdir 成功不能代表 workerd/KJ 也能建目录；Windows 上仍须配合 ACL 检查。
+ */
+export function canCreateDirInSite(siteDir) {
+  if (!siteDir || !existsSync(siteDir)) return false;
+  const probe = join(siteDir, `.cizhenyu-write-probe-${process.pid}-${Date.now()}`);
+  try {
+    mkdirSync(probe);
+    rmSync(probe, { recursive: true, force: true });
+    return true;
+  } catch {
+    try {
+      rmSync(probe, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+    return false;
+  }
+}
+
+/** 检测站点目录是否被写入 DENY(CreateDirectories) 或 Low Integrity（workerd CreateDirectory #5 的常见根因）。 */
+export function hasPoisonedWindowsAcl(siteDir) {
+  if (process.platform !== 'win32' || !siteDir || !existsSync(siteDir)) return false;
+  const r = runIcacls([siteDir], 20000);
+  const out = `${r?.stdout || ''}\n${r?.stderr || ''}`;
+  return /\(DENY\)|Low Mandatory Level/i.test(out);
+}
+
+/**
+ * 修复 Windows 站点目录被沙箱/安全软件写入的 DENY ACE 与 Low Integrity，
+ * 否则 workerd 会在创建 miniflare-* 时报 CreateDirectory #5。
+ * @param {string} siteDir
+ * @param {{ deep?: boolean }} [opts] deep=true 时对已有子树 /T 重置（较慢，仅作最后手段）
+ */
+export function normalizeSiteFilesystemAccess(siteDir, opts = {}) {
+  if (process.platform !== 'win32' || !siteDir || !existsSync(siteDir)) return;
+  const deep = Boolean(opts.deep);
+  const trail = deep ? ['/T', '/C', '/Q'] : ['/C', '/Q'];
+  const targets = [];
+  const wranglerDir = join(siteDir, '.wrangler');
+  if (existsSync(wranglerDir)) targets.push(wranglerDir);
+  targets.push(siteDir);
+
+  for (const target of targets) {
+    runIcacls([target, '/remove:d', 'Everyone', ...trail]);
+    runIcacls([target, '/remove:d', '*S-1-1-0', ...trail]);
+    runIcacls([target, '/reset', ...trail], deep ? 180000 : 30000);
+    runIcacls([target, '/setintegritylevel', '(OI)(CI)M', ...trail]);
+    const user = String(process.env.USERNAME || '').trim();
+    if (user) {
+      runIcacls([target, '/grant', `${user}:(OI)(CI)F`, ...trail]);
+    }
+    runIcacls([target, '/grant', 'BUILTIN\\Users:(OI)(CI)M', ...trail]);
+  }
+}
+
+/**
+ * 确保 Astro Cloudflare adapter 关闭本地 persist，避免 workerd 在站点 cwd 强行建 miniflare 持久化目录。
+ */
+export function ensurePersistStateDisabled(siteDir) {
+  const cfgPath = join(siteDir, 'astro.config.mjs');
+  if (!existsSync(cfgPath)) return false;
+  let raw = readFileSync(cfgPath, 'utf8');
+  if (/persistState\s*:\s*false/.test(raw)) return false;
+  let next = raw;
+  if (/persistState\s*:\s*true/.test(next)) {
+    next = next.replace(/persistState\s*:\s*true/g, 'persistState: false');
+  } else if (/cloudflare\s*\(\s*\{/.test(next)) {
+    next = next.replace(/cloudflare\s*\(\s*\{/, 'cloudflare({\n    persistState: false,');
+  } else if (/cloudflare\s*\(\s*\)/.test(next)) {
+    next = next.replace(/cloudflare\s*\(\s*\)/, 'cloudflare({ persistState: false })');
+  } else {
+    return false;
+  }
+  if (next === raw) return false;
+  writeFileSync(cfgPath, next, 'utf8');
+  return true;
+}
+
 function cleanupStalePreviewCaches(siteDir) {
-  const targets = [join(siteDir, '.wrangler', 'state'), join(siteDir, 'node_modules', '.vite')];
-  for (const t of targets) {
+  const targets = [
+    join(siteDir, '.wrangler'),
+    join(siteDir, 'node_modules', '.vite'),
+    join(siteDir, 'miniflare-email-store'),
+    join(siteDir, '.mf'),
+  ];
+  try {
+    for (const name of readdirSync(siteDir)) {
+      if (name.startsWith('miniflare-') || name === '.wrangler' || name === '.mf') {
+        targets.push(join(siteDir, name));
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  const uniq = [...new Set(targets)];
+  for (const t of uniq) {
     if (!existsSync(t)) continue;
     try {
       rmSync(t, { recursive: true, force: true, maxRetries: 4, retryDelay: 200 });
@@ -220,6 +343,12 @@ function cleanupStalePreviewCaches(siteDir) {
       // ignore locked files
     }
   }
+}
+
+function makeIsolatedTmp(siteKey) {
+  const dir = join(homeDir(), 'tmp', `preview-${siteKey}-${Date.now()}`);
+  mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 async function launchPreviewOnce(siteKey, siteDir, isolatedTmpDir = '') {
@@ -331,8 +460,17 @@ async function isPreviewHealthy(url) {
   }
 }
 
+function prepareSiteForPreview(siteDir, { deepAcl = false } = {}) {
+  ensurePersistStateDisabled(siteDir);
+  if (process.platform === 'win32') {
+    // Node mkdir 成功不能排除 workerd 因 DENY/Low Integrity 失败；每次预览前浅层规范化，失败重试再 deep。
+    normalizeSiteFilesystemAccess(siteDir, { deep: Boolean(deepAcl) });
+  }
+  cleanupStalePreviewCaches(siteDir);
+}
+
 /**
- * 启动站点本地预览（严格避让第三方占用端口 + 孤儿回收 + 异常自愈重试）。
+ * 启动站点本地预览（严格避让第三方占用端口 + 孤儿回收 + ACL/缓存自愈重试）。
  */
 export async function startPreviewForSite(siteKey, siteDir) {
   const existing = previewJobs.get(siteKey);
@@ -347,27 +485,40 @@ export async function startPreviewForSite(siteKey, siteDir) {
   }
 
   killOrphanProcessesForSite(siteKey, siteDir);
+  prepareSiteForPreview(siteDir, { deepAcl: false });
 
-  const first = await launchPreviewOnce(siteKey, siteDir);
+  const first = await launchPreviewOnce(siteKey, siteDir, makeIsolatedTmp(siteKey));
   if (first.ok) {
     return first.status;
   }
 
   const cleanErr = stripAnsi(first.rawError);
-  if (isRecoverablePreviewError(cleanErr)) {
-    killOrphanProcessesForSite(siteKey, siteDir);
-    cleanupStalePreviewCaches(siteDir);
-    await new Promise((r) => setTimeout(r, 600));
-
-    const freshTmp = join(homeDir(), 'tmp', `${siteKey}-${Date.now()}`);
-    const retry = await launchPreviewOnce(siteKey, siteDir, freshTmp);
-    if (retry.ok) {
-      return retry.status;
-    }
-    throw new Error(formatFriendlyPreviewError(retry.rawError, true));
+  if (!isRecoverablePreviewError(cleanErr)) {
+    throw new Error(formatFriendlyPreviewError(first.rawError, false));
   }
 
-  throw new Error(formatFriendlyPreviewError(first.rawError, false));
+  // 自愈第 1 次：浅层 ACL + 清缓存 + 隔离 TMP
+  killOrphanProcessesForSite(siteKey, siteDir);
+  prepareSiteForPreview(siteDir, { deepAcl: false });
+  normalizeSiteFilesystemAccess(siteDir, { deep: false });
+  await new Promise((r) => setTimeout(r, 700));
+
+  const retry1 = await launchPreviewOnce(siteKey, siteDir, makeIsolatedTmp(siteKey));
+  if (retry1.ok) {
+    return retry1.status;
+  }
+
+  // 自愈第 2 次：深层 ACL（含子树）后再试一次
+  killOrphanProcessesForSite(siteKey, siteDir);
+  prepareSiteForPreview(siteDir, { deepAcl: true });
+  await new Promise((r) => setTimeout(r, 900));
+
+  const retry2 = await launchPreviewOnce(siteKey, siteDir, makeIsolatedTmp(siteKey));
+  if (retry2.ok) {
+    return retry2.status;
+  }
+
+  throw new Error(formatFriendlyPreviewError(retry2.rawError, true));
 }
 
 export function stopSitePreview(siteKeyRaw) {

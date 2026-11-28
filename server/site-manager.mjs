@@ -16,7 +16,9 @@ import { join, resolve } from 'node:path';
 import { generateSiteAgentsMd, validateCmsContract } from './platform-spec.mjs';
 import { ROOT, resolveSitesRoot, sanitizeSiteKey } from './paths.mjs';
 import {
+  ensurePersistStateDisabled,
   getPreviewStatus,
+  normalizeSiteFilesystemAccess,
   startPreviewForSite,
   stopAllPreviews,
   stopSitePreview,
@@ -263,6 +265,8 @@ export function createSiteProject(input, sitesDirOverride = '') {
 
   writeFileSync(join(siteDir, 'AGENTS.md'), generateSiteAgentsMd(siteKey, displayName), 'utf8');
   syncSkillsIntoSite(siteDir);
+  ensurePersistStateDisabled(siteDir);
+  normalizeSiteFilesystemAccess(siteDir, { deep: false });
   triggerSiteNpmInstall(siteKey, sitesRoot);
 
   return getSiteDetail(siteKey, sitesRoot);
